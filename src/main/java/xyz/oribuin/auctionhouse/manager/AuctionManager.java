@@ -190,7 +190,7 @@ public class AuctionManager extends Manager {
 
         double playerBalance = VaultHook.getEconomy().getBalance(player);
 
-        if (buyPrice > playerBalance) {
+        if (auction.getPrice() > playerBalance) {
             locale.sendMessage(player, "invalid-funds", StringPlaceholders.builder().addPlaceholder("price", PluginUtils.formatCurrency(buyPrice)).build());
             return;
         }
