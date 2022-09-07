@@ -44,7 +44,7 @@ public class ConfirmMenu extends OriMenu {
 
         if (this.get("auction-item.enabled", true)) {
             List<Integer> auctionSlots = this.parseList(this.get("auction-item.slots", List.of("4-4")));
-            gui.setItem(auctionSlots, new GuiItem(auction.getItem()));
+            gui.setItem(auctionSlots, new GuiItem(auction.getItem().clone()));
         }
 
         final ConfigurationSection extra = this.config.getConfigurationSection("extra-items");
