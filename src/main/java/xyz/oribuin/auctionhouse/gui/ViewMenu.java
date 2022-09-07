@@ -43,13 +43,13 @@ public class ViewMenu extends OriMenu {
 
         this.put(gui, "next-page", player, event -> {
             gui.next();
-            gui.updateTitle(this.formatString(player, this.get("gui-settings.title", "gui-settings.title"), this.getPagePlaceholders(gui)));
+            gui.updateTitle(this.formatString(player, this.get("gui-settings.title", "gui-settings.title"), this.getPagePlaceholders(gui, seller)));
         });
 
         this.put(gui, "refresh-menu", player, event -> this.setAuctions(gui, player, seller));
         this.put(gui, "previous-page", player, event -> {
             gui.previous();
-            gui.updateTitle(this.formatString(player, this.get("gui-settings.title", "gui-settings.title"), this.getPagePlaceholders(gui)));
+            gui.updateTitle(this.formatString(player, this.get("gui-settings.title", "gui-settings.title"), this.getPagePlaceholders(gui, seller)));
         });
 
 
