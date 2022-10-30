@@ -72,13 +72,17 @@ public class LogManager extends Manager {
      * @return The placeholders for the auction
      */
     private StringPlaceholders getPlaceholders(Auction auction) {
-        return StringPlaceholders.builder()
-                .addPlaceholder("item", PluginUtils.getItemName(auction.getItem()))
+
+        StringPlaceholders.Builder builder = StringPlaceholders.builder()
                 .addPlaceholder("price", auction.getPrice())
                 .addPlaceholder("seller", auction.getSeller() != null ? auction.getSeller() : "N/A")
                 .addPlaceholder("buyer", auction.getBuyer() != null ? auction.getBuyer() : "N/A")
-                .addPlaceholder("id", auction.getId())
-                .build();
+                .addPlaceholder("id", auction.getId());
+
+        if (auction.getItem() != null)
+            builder.addPlaceholder("item", PluginUtils.getItemName(auction.getItem()));
+
+        return builder.build();
     }
 
     public enum LogMessage {

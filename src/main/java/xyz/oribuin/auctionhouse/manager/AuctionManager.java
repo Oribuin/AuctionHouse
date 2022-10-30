@@ -264,12 +264,14 @@ public class AuctionManager extends Manager {
      * @param auction The auction to delete
      */
     public void deleteAuction(Auction auction) {
-        this.logManager.addLogMessage(LogMessage.AUCTION_DELETED, auction);
-
         auction.setExpired(true);
         auction.setSold(true);
         this.data.deleteAuction(auction);
+
+        this.logManager.addLogMessage(LogMessage.AUCTION_DELETED, auction);
+
     }
+
 
     /**
      * Send the player their offline profits

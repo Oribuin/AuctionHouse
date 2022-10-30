@@ -59,9 +59,18 @@ public class EnglishLocale implements Locale {
             this.put("#6", "View Command");
             this.put("command-view-description", "View any player's active auctions.");
 
-            this.put("#7", "General Auction Messages");
+            this.put("#7", "Admin Command");
+            this.put("command-admin-description", "Admin command for AuctionHouse.");
+            this.put("command-admin-usage", "&f%command%");
+            this.put("command-admin-check-header", "All auctions created by %player%");
+            this.put("command-admin-check-format", " &8- #00B4DB%id% &7- &f%item% &7- &f%price% &7- %sold%");
+            this.put("command-admin-delete-success", "You have deleted the auction %id%");
+            this.put("command-admin-expire-success", "You have expired the auction %id%");
+
+            this.put("#8", "General Auction Messages");
             this.put("offline-profits", "You have earned #00B4DB$%amount%&f from #00B4DB%total%&f auctions while offline.");
             this.put("auction-sold", "Your auction has been bought for #00B4DB%price%&f by #00B4DB%buyer%&f!");
+            this.put("invalid-auction", "Please provide a valid auction ID.");
         }};
     }
 }
