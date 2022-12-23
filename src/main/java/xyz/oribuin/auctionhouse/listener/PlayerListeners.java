@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import xyz.oribuin.auctionhouse.event.AuctionSoldEvent;
 import xyz.oribuin.auctionhouse.manager.AuctionManager;
+import xyz.oribuin.auctionhouse.manager.DataManager;
 
 public class PlayerListeners implements Listener {
 
@@ -21,7 +22,12 @@ public class PlayerListeners implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onJoin(PlayerJoinEvent event) {
-        this.rosePlugin.getServer().getScheduler().runTaskLaterAsynchronously(this.rosePlugin, () -> this.manager.showOfflineProfits(event.getPlayer()), 100);
+
+        // load the users auctions (we're loading the sold or expired auctions here)
+        this.rosePlugin.getManager(DataManager.class).loadUserAuctions(event.getPlayer().getUniqueId());
+
+        this.rosePlugin.getServer().getScheduler().runTaskLaterAsynchronously(this.rosePlugin,
+                () -> this.manager.showOfflineProfits(event.getPlayer()), 100);
     }
 
     @EventHandler(ignoreCancelled = true)

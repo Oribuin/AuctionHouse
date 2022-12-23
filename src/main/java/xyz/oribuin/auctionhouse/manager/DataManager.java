@@ -42,7 +42,60 @@ public class DataManager extends AbstractDataManager {
         this.async(() -> this.databaseConnector.connect(connection -> {
             this.rosePlugin.getLogger().info("Loading auctions from database...");
 
-            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions")) {
+            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE expired = ? AND sold = ?")) {
+                statement.setBoolean(1, false);
+                statement.setBoolean(2, false);
+
+                ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+
+                    // we're saving resources by not getting all expired auctions
+                    if (resultSet.getBoolean("expired") || resultSet.getBoolean("sold"))
+                        continue;
+
+                    final int id = resultSet.getInt("id");
+                    final UUID seller = UUID.fromString(resultSet.getString("seller"));
+                    final ItemStack item = this.deserialize(resultSet.getBytes("item"));
+                    final double price = resultSet.getDouble("price");
+
+                    // Create the auction
+                    final Auction auction = new Auction(id, seller, item, price);
+//                    if (resultSet.getString("buyer") != null) {
+//                        auction.setBuyer(UUID.fromString(resultSet.getString("buyer")));
+//                    }
+
+                    this.auctionCache.put(id, auction);
+                }
+            }
+
+            this.rosePlugin.getLogger().info("Loaded " + this.auctionCache.size() + "active auctions from the database.");
+            this.rosePlugin.getLogger().info("Loading offline profits from database...");
+
+            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "offline_profits")) {
+                ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    final UUID uuid = UUID.fromString(resultSet.getString("uuid"));
+                    final double profits = resultSet.getDouble("profits");
+                    final int totalSold = resultSet.getInt("totalSold");
+                    this.offlineProfitsCache.put(uuid, new OfflineProfits(profits, totalSold));
+                }
+            }
+
+            this.rosePlugin.getLogger().info("Loaded " + this.offlineProfitsCache.size() + " offline profits from the database.");
+        }));
+    }
+
+    /**
+     * Load the user's auctions from the database
+     *
+     * @param uuid     The user's UUID
+     */
+    public void loadUserAuctions(UUID uuid) {
+        this.async(() -> this.databaseConnector.connect(connection -> {
+            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE seller = ? AND expired = ? OR sold = ?")) {
+                statement.setString(1, uuid.toString());
+                statement.setBoolean(2, true);
+                statement.setBoolean(3, true);
                 ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
                     final int id = resultSet.getInt("id");
@@ -64,21 +117,6 @@ public class DataManager extends AbstractDataManager {
                     this.auctionCache.put(id, auction);
                 }
             }
-
-            this.rosePlugin.getLogger().info("Loaded " + this.auctionCache.size() + " auctions from the database.");
-            this.rosePlugin.getLogger().info("Loading offline profits from database...");
-
-            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "offline_profits")) {
-                ResultSet resultSet = statement.executeQuery();
-                while (resultSet.next()) {
-                    final UUID uuid = UUID.fromString(resultSet.getString("uuid"));
-                    final double profits = resultSet.getDouble("profits");
-                    final int totalSold = resultSet.getInt("totalSold");
-                    this.offlineProfitsCache.put(uuid, new OfflineProfits(profits, totalSold));
-                }
-            }
-
-            this.rosePlugin.getLogger().info("Loaded " + this.offlineProfitsCache.size() + " offline profits from the database.");
         }));
     }
 
