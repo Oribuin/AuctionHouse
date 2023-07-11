@@ -149,7 +149,7 @@ public class MainAuctionMenu extends OriMenu {
                             manager.expireAuction(value);
 
                         else if (event.isRightClick())
-                            manager.deleteAuction(value);
+                            manager.deleteAuction(value, result -> {});
 
                         this.sync(() -> this.setAuctions(gui, player));
                         return;

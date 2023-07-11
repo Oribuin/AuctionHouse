@@ -110,8 +110,11 @@ public class AdminCommand extends RoseCommand {
             }
 
             // Delete auction
-            auctionManager.deleteAuction(auction.get());
-            locale.sendMessage(context.getSender(), "command-admin-delete-success", StringPlaceholders.single("id", auctionId));
+            auctionManager.deleteAuction(auction.get(),
+                    result -> locale.sendMessage(context.getSender(), "command-admin-delete-success",
+                            StringPlaceholders.single("id", auctionId)
+                    )
+            );
         }
 
         @Override

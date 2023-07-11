@@ -114,12 +114,11 @@ public class ExpiredAuctionsMenu extends OriMenu {
 
                 ItemStack item = value.getItem().clone();
                 if (player.getInventory().firstEmpty() != -1) {
-                    auctionManager.deleteAuction(value);
 
-                    this.sync(() -> {
+                    auctionManager.deleteAuction(value, auction -> this.sync(() -> {
                         player.getInventory().addItem(item);
                         this.setAuctions(gui, player);
-                    });
+                    }));
                 }
             }));
 

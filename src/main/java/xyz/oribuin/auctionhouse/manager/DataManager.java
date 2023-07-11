@@ -4,7 +4,6 @@ import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.database.DataMigration;
 import dev.rosewood.rosegarden.manager.AbstractDataManager;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Consumer;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 import xyz.oribuin.auctionhouse.auction.Auction;
@@ -15,6 +14,7 @@ import xyz.oribuin.auctionhouse.database.migration._2_CreateOfflineProfitsTable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class DataManager extends AbstractDataManager {
 
@@ -88,7 +89,7 @@ public class DataManager extends AbstractDataManager {
     /**
      * Load the user's auctions from the database
      *
-     * @param uuid     The user's UUID
+     * @param uuid The user's UUID
      */
     public void loadUserAuctions(UUID uuid) {
         this.async(() -> this.databaseConnector.connect(connection -> {
@@ -184,13 +185,16 @@ public class DataManager extends AbstractDataManager {
      *
      * @param auction The auction to delete
      */
-    public void deleteAuction(Auction auction) {
-        this.auctionCache.remove(auction.getId());
+    public void deleteAuction(Auction auction, Consumer<Auction> callback) {
+        if (this.auctionCache.remove(auction.getId()) == null)
+            return;
+
         this.async(() -> this.databaseConnector.connect(connection -> {
             final String query = "DELETE FROM " + this.getTablePrefix() + "auctions WHERE id = ?";
-            try (var statement = connection.prepareStatement(query)) {
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setInt(1, auction.getId());
                 statement.executeUpdate();
+                callback.accept(auction);
             }
         }));
     }

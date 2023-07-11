@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class AuctionManager extends Manager {
@@ -263,13 +264,12 @@ public class AuctionManager extends Manager {
      *
      * @param auction The auction to delete
      */
-    public void deleteAuction(Auction auction) {
+    public void deleteAuction(Auction auction, Consumer<Auction> callback) {
+
         auction.setExpired(true);
         auction.setSold(true);
-        this.data.deleteAuction(auction);
-
+        this.data.deleteAuction(auction, callback);
         this.logManager.addLogMessage(LogMessage.AUCTION_DELETED, auction);
-
     }
 
 

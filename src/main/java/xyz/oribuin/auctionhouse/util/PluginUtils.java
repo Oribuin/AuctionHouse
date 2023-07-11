@@ -170,8 +170,12 @@ public final class PluginUtils {
 
         // Get item owner
         String owner = get(config, path + ".owner", null);
-        if (owner != null)
-            builder.setOwner(Bukkit.getOfflinePlayer(UUID.fromString(owner)));
+        if (owner != null) {
+            if (owner.equalsIgnoreCase("self"))
+                builder.setOwner(player);
+            else
+                builder.setOwner(Bukkit.getOfflinePlayer(UUID.fromString(PAPI.apply(player, owner))));
+        }
 
         // Get item enchantments
         final CommentedConfigurationSection enchants = config.getConfigurationSection(path + "enchants");

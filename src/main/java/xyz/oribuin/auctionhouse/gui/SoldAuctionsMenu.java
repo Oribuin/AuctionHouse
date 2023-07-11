@@ -118,11 +118,10 @@ public class SoldAuctionsMenu extends OriMenu {
                         .setLore(lore)
                         .create();
 
-                gui.addItem(new GuiItem(baseItem, event -> {
-                    auctionManager.deleteAuction(value);
-                    this.sync(() -> this.setAuctions(gui, player));
-                }));
-
+                gui.addItem(new GuiItem(baseItem, event ->
+                        auctionManager.deleteAuction(value,
+                                result -> this.sync(() -> this.setAuctions(gui, player)))
+                ));
             });
 
             gui.update();
