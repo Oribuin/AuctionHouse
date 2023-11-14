@@ -5,7 +5,7 @@ import dev.rosewood.rosegarden.manager.Manager;
 import dev.rosewood.rosegarden.utils.StringPlaceholders;
 import xyz.oribuin.auctionhouse.auction.Auction;
 import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
-import xyz.oribuin.auctionhouse.util.PluginUtils;
+import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -73,16 +73,13 @@ public class LogManager extends Manager {
      */
     private StringPlaceholders getPlaceholders(Auction auction) {
 
-        StringPlaceholders.Builder builder = StringPlaceholders.builder()
-                .addPlaceholder("price", auction.getPrice())
-                .addPlaceholder("seller", auction.getSeller() != null ? auction.getSeller() : "N/A")
-                .addPlaceholder("buyer", auction.getBuyer() != null ? auction.getBuyer() : "N/A")
-                .addPlaceholder("id", auction.getId());
-
-        if (auction.getItem() != null)
-            builder.addPlaceholder("item", PluginUtils.getItemName(auction.getItem()));
-
-        return builder.build();
+        return StringPlaceholders.builder()
+                .add("price", auction.getPrice())
+                .add("seller", auction.getSeller() != null ? auction.getSeller() : "N/A")
+                .add("buyer", auction.getBuyer() != null ? auction.getBuyer() : "N/A")
+                .add("id", auction.getId())
+                .add("item", auction.getItem() != null ? AuctionUtils.getItemName(auction.getItem()) : "N/A")
+                .build();
     }
 
     public enum LogMessage {

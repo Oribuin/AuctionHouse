@@ -27,7 +27,7 @@ public class PlayerListeners implements Listener {
         this.rosePlugin.getManager(DataManager.class).loadUserAuctions(event.getPlayer().getUniqueId());
 
         this.rosePlugin.getServer().getScheduler().runTaskLaterAsynchronously(this.rosePlugin,
-                () -> this.manager.showOfflineProfits(event.getPlayer()), 100);
+                () -> this.manager.showProfit(event.getPlayer()), 100);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -37,7 +37,7 @@ public class PlayerListeners implements Listener {
             return;
         }
 
-
-        this.manager.addOfflineProfit(event.getAuction().getSeller(), event.getAuction());
+        this.manager.addProfit(event.getAuction().getSeller(), event.getAuction());
     }
+
 }

@@ -3,6 +3,7 @@ package xyz.oribuin.auctionhouse.manager;
 import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.database.DataMigration;
 import dev.rosewood.rosegarden.manager.AbstractDataManager;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
@@ -20,7 +21,6 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -43,7 +43,7 @@ public class DataManager extends AbstractDataManager {
         this.async(() -> this.databaseConnector.connect(connection -> {
             this.rosePlugin.getLogger().info("Loading auctions from database...");
 
-            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE expired = ? AND sold = ?")) {
+            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE expired = ? AND sold = ?")) {
                 statement.setBoolean(1, false);
                 statement.setBoolean(2, false);
 
@@ -61,10 +61,6 @@ public class DataManager extends AbstractDataManager {
 
                     // Create the auction
                     final Auction auction = new Auction(id, seller, item, price);
-//                    if (resultSet.getString("buyer") != null) {
-//                        auction.setBuyer(UUID.fromString(resultSet.getString("buyer")));
-//                    }
-
                     this.auctionCache.put(id, auction);
                 }
             }
@@ -72,7 +68,7 @@ public class DataManager extends AbstractDataManager {
             this.rosePlugin.getLogger().info("Loaded " + this.auctionCache.size() + "active auctions from the database.");
             this.rosePlugin.getLogger().info("Loading offline profits from database...");
 
-            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "offline_profits")) {
+            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "offline_profits")) {
                 ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
                     final UUID uuid = UUID.fromString(resultSet.getString("uuid"));
@@ -93,10 +89,11 @@ public class DataManager extends AbstractDataManager {
      */
     public void loadUserAuctions(UUID uuid) {
         this.async(() -> this.databaseConnector.connect(connection -> {
-            try (var statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE seller = ? AND expired = ? OR sold = ?")) {
+            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "auctions WHERE seller = ? AND expired = ? OR sold = ?")) {
                 statement.setString(1, uuid.toString());
                 statement.setBoolean(2, true);
                 statement.setBoolean(3, true);
+
                 ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
                     final int id = resultSet.getInt("id");
@@ -134,23 +131,23 @@ public class DataManager extends AbstractDataManager {
 
         this.async(() -> this.databaseConnector.connect(connection -> {
             final String query = "INSERT INTO " + this.getTablePrefix() + "auctions (seller, item, price) VALUES (?, ?, ?)";
-            try (var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
                 statement.setString(1, uuid.toString());
                 statement.setBytes(2, this.serialize(item));
                 statement.setDouble(3, price);
                 statement.executeUpdate();
 
                 // Get the ID of the auction
-                try (var resultSet = statement.getGeneratedKeys()) {
+                try (ResultSet resultSet = statement.getGeneratedKeys()) {
                     if (resultSet.next()) {
                         auction.setId(resultSet.getInt(1));
                         this.saveAuction(auction);
-                        this.rosePlugin.getServer().getScheduler().runTask(this.rosePlugin, () -> callback.accept(auction));
+
+                        Bukkit.getScheduler().runTask(this.rosePlugin, () -> callback.accept(auction));
                     }
                 }
             }
         }));
-
     }
 
     /**
@@ -165,7 +162,7 @@ public class DataManager extends AbstractDataManager {
 
             // Save auction in database where id matches the auction id
             final String query = "REPLACE INTO " + this.getTablePrefix() + "auctions (id, seller, item, price, createdTime, expiredTime, soldTime, sold, expired) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            try (var statement = connection.prepareStatement(query)) {
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setInt(1, auction.getId());
                 statement.setString(2, auction.getSeller().toString());
                 statement.setBytes(3, this.serialize(auction.getItem()));
@@ -193,25 +190,13 @@ public class DataManager extends AbstractDataManager {
             final String query = "DELETE FROM " + this.getTablePrefix() + "auctions WHERE id = ?";
             try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setInt(1, auction.getId());
-                statement.executeUpdate();
-                callback.accept(auction);
+                int result = statement.executeUpdate();
+
+                if (result > 0) {
+                    Bukkit.getScheduler().runTask(this.rosePlugin, () -> callback.accept(auction));
+                }
             }
         }));
-    }
-
-    /**
-     * Get an auction from the cache
-     *
-     * @param id The auction ID
-     * @return The auction
-     */
-    public Optional<Auction> getAuction(int id) {
-        return Optional.ofNullable(this.auctionCache.get(id));
-    }
-
-    @Override
-    public List<Class<? extends DataMigration>> getDataMigrations() {
-        return List.of(_1_CreateInitialTables.class, _2_CreateOfflineProfitsTable.class);
     }
 
     /**
@@ -226,15 +211,14 @@ public class DataManager extends AbstractDataManager {
         this.async(() -> this.databaseConnector.connect(connection -> {
             final String query = "REPLACE INTO " + this.getTablePrefix() + "offline_profits (uuid, profits, totalSold) VALUES (?, ?, ?)";
 
-            try (var statement = connection.prepareStatement(query)) {
+            try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setString(1, uuid.toString());
-                statement.setDouble(2, profits.getProfit());
-                statement.setInt(3, profits.getSold());
+                statement.setDouble(2, profits.profit());
+                statement.setInt(3, profits.sold());
                 statement.executeUpdate();
             }
         }));
     }
-
 
     /**
      * Serializes an item stack to a byte array
@@ -275,11 +259,11 @@ public class DataManager extends AbstractDataManager {
         return offlineProfitsCache;
     }
 
-    /**
-     * Runs an async task
-     *
-     * @param runnable The runnable to run
-     */
+    @Override
+    public List<Class<? extends DataMigration>> getDataMigrations() {
+        return List.of(_1_CreateInitialTables.class, _2_CreateOfflineProfitsTable.class);
+    }
+
     public void async(Runnable runnable) {
         this.rosePlugin.getServer().getScheduler().runTaskAsynchronously(this.rosePlugin, runnable);
     }

@@ -10,11 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import xyz.oribuin.auctionhouse.manager.AuctionManager;
 import xyz.oribuin.auctionhouse.manager.LocaleManager;
-import xyz.oribuin.auctionhouse.util.PluginUtils;
+import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -39,14 +37,13 @@ public class SellCommand extends RoseCommand {
 
         // Make the player confirm they want to sell their item
         if (!this.confirmMap.containsKey(player.getUniqueId()) || this.confirmMap.getOrDefault(player.getUniqueId(), 0.0) != price.doubleValue()) {
-            locale.sendMessage(player, "command-sell-confirm", StringPlaceholders.single("price", PluginUtils.formatCurrency(price)));
+            locale.sendMessage(player, "command-sell-confirm", StringPlaceholders.of("price", AuctionUtils.formatCurrency(price)));
             this.confirmMap.put(player.getUniqueId(), price);
             return;
         }
 
-
+        final ItemStack item = player.getInventory().getItemInMainHand().clone();
         this.confirmMap.remove(player.getUniqueId());
-        ItemStack item = player.getInventory().getItemInMainHand().clone();
         auctionManager.createAuction(player, item, price);
     }
 
