@@ -23,12 +23,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class PersonalAuctionsMenu extends PluginMenu {
+public class MainAuctionsMenu extends PluginMenu {
 
     private final Map<UUID, Integer> lastPage = new HashMap<>(); // TODO
+    private final Map<UUID, SortType> lastSort = new HashMap<>();
 
-    public PersonalAuctionsMenu(RosePlugin rosePlugin) {
-        super(rosePlugin, "my-auctions");
+    public MainAuctionsMenu(RosePlugin rosePlugin) {
+        super(rosePlugin, "main-menu");
     }
 
     public void open(Player player) {
@@ -66,11 +67,12 @@ public class PersonalAuctionsMenu extends PluginMenu {
                 .place(gui);
 
         MenuItem.create(this.config)
-                .path("main-menu")
+                .path("my-auctions")
                 .player(player)
-                .action(event -> menuManager.get(MainAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open(player))
                 .place(gui);
 
+        this.addSort(gui, player);
         this.setAuctions(gui, player);
         gui.open(player);
     }
@@ -87,10 +89,17 @@ public class PersonalAuctionsMenu extends PluginMenu {
 
         final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
         final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-item.lore"));
+        final List<String> auctionLore = new ArrayList<>(
+                player.hasPermission("auctionhouse.admin")
+                        ? this.config.getStringList("auction-settings.admin-lore")
+                        : this.config.getStringList("auction-settings.lore")
+        );
 
         this.async(() -> {
-            final List<Auction> auctions = new ArrayList<>(manager.getActive(player.getUniqueId()));
+            final List<Auction> auctions = new ArrayList<>(manager.getActive());
+            final SortType sortType = this.lastSort.getOrDefault(player.getUniqueId(), SortType.TIME_ASCENDING);
+
+            auctions.sort(sortType.getComparator());
 
             for (Auction auction : auctions) {
                 if (auction.isExpired()) {
@@ -107,7 +116,7 @@ public class PersonalAuctionsMenu extends PluginMenu {
 
                 final StringPlaceholders placeholders = StringPlaceholders.builder()
                         .add("price", AuctionUtils.formatCurrency(auction.getPrice()))
-                        .add("seller", "You")
+                        .add("seller", auction.getSellerPlayer().getName())
                         .add("time", timeLeft.equals("0") ? "Expired" : timeLeft)
                         .build();
 
@@ -116,11 +125,36 @@ public class PersonalAuctionsMenu extends PluginMenu {
                 itemStack.setItemMeta(itemMeta);
 
                 gui.addItem(new GuiItem(itemStack, event -> {
-                    if (auction.isExpired())
-                        return;
 
-                    manager.expire(auction);
-                    this.setAuctions(gui, player);
+                    // Admin commands
+                    if (event.isShiftClick() && player.hasPermission("auctionhouse.admin")) {
+                        if (event.isLeftClick()) {
+                            manager.expire(auction);
+                        } else if (event.isRightClick()) {
+                            manager.delete(auction);
+
+                            // Give the player the item back
+                            player.getInventory().addItem(auction.getItem());
+                        }
+
+                        // Update the GUI
+                        this.setAuctions(gui, player);
+                        return;
+                    }
+
+                    // Stop the player from buying it if they are the seller
+                    if (player.getUniqueId() == auction.getSeller()) {
+                        gui.close(player);
+                        locale.sendMessage(player, "command-buy-own-auction");
+                        return;
+                    }
+
+                    gui.close(player);
+
+                    // Buy the auction
+                    this.rosePlugin.getManager(MenuManager.class)
+                            .get(ConfirmMenu.class)
+                            .open(player, auction);
                 }));
             }
 
@@ -143,6 +177,7 @@ public class PersonalAuctionsMenu extends PluginMenu {
                 .action(event -> {
                     if (gui.previous()) {
                         this.updateTitle(gui);
+                        this.lastPage.put(player.getUniqueId(), gui.getCurrentPageNum());
                     }
                 })
                 .place(gui);
@@ -154,7 +189,40 @@ public class PersonalAuctionsMenu extends PluginMenu {
                 .action(event -> {
                     if (gui.next()) {
                         this.updateTitle(gui);
+                        this.lastPage.put(player.getUniqueId(), gui.getCurrentPageNum());
                     }
+                })
+                .place(gui);
+
+        gui.update();
+    }
+
+    /**
+     * Add the option to cycle through the different sort types
+     *
+     * @param gui    The GUI
+     * @param player The player
+     */
+    private void addSort(PaginatedGui gui, Player player) {
+        final SortType sort = this.lastSort.getOrDefault(player.getUniqueId(), SortType.TIME_ASCENDING);
+
+        MenuItem.create(this.config)
+                .path("sort-item")
+                .placeholders(StringPlaceholders.of("sort", sort.getDisplayName()))
+                .player(player)
+                .action(event -> {
+                    SortType newSort = sort;
+
+                    switch (sort) {
+                        case TIME_ASCENDING -> newSort = SortType.TIME_DESCENDING;
+                        case TIME_DESCENDING -> newSort = SortType.PRICE_ASCENDING;
+                        case PRICE_ASCENDING -> newSort = SortType.PRICE_DESCENDING;
+                        case PRICE_DESCENDING -> newSort = SortType.TIME_ASCENDING;
+                    }
+
+                    this.lastSort.put(player.getUniqueId(), newSort);
+                    this.addSort(gui, player);
+                    this.setAuctions(gui, player);
                 })
                 .place(gui);
 

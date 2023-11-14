@@ -1,0 +1,52 @@
+# en_US translation by Oribuin
+# Plugin Command Prefix
+prefix: "<g:#00B4DB:#0083B0>&lAuctionHouse &8| &f"
+
+# Generic Command Messages
+no-permission: "You do not have permission to do that!"
+only-player: "This command can only be executed by a player!"
+unknown-command: "Unknown command, use #00B4DB/%cmd%&f help for more info"
+invalid-funds: "You do not have enough funds to do that!"
+
+# Help Command Messages
+command-help-title: "Available Commands:"
+command-help-description: "Displays the help menu"
+command-help-list-description: " &8- #00B4DB/%cmd% %subcmd% %args% &7- &f%desc%"
+command-help-list-description-no-args: " &8- #00B4DB/%cmd% %subcmd% &7- &f%desc%"
+
+# Reload Command Messages
+command-reload-description: "Reloads the plugin."
+command-reload-reloaded: "Configuration and locale files were reloaded"
+
+# Sell Command
+command-sell-description: "Put your hand item in the auction."
+command-sell-confirm: "Please confirm you want to sell your item for %price%"
+command-sell-success: "You have put an item on the auction for %price%"
+command-sell-max-reached: "You have reached the maximum amount of items you can sell at once. (%current%/%max%)"
+command-sell-invalid-price: "Please specify a valid price. ($%min%-$%max%)"
+command-sell-invalid-item: "Please provide a valid item to sell."
+command-sell-no-item: "We couldn't remove your item from your inventory. Please try again."
+command-sell-cooldown: "You must wait %time% seconds before you can sell another item."
+command-sell-disabled-item: "You cannot sell this item."
+
+# Buy Command
+command-buy-success: "You have bought an item for %price% from %seller%"
+command-buy-own-auction: "You can't buy your own auction!"
+command-buy-auction-gone: "The auction you are trying to buy has already been sold."
+command-buy-no-space: "You don't have enough space in your inventory to buy this item."
+
+# View Command
+command-view-description: "View any player's active auctions."
+
+# Admin Command
+command-admin-description: "Admin command for AuctionHouse."
+command-admin-usage: "&f%command%"
+command-admin-check-header: "All auctions created by %player%"
+command-admin-check-format: " &8- #00B4DB%id% &7- &f%item% &7- &f%price% &7- %sold%"
+command-admin-delete-success: "You have deleted the auction %id%"
+command-admin-expire-success: "You have expired the auction %id%"
+
+# General Auction Messages
+offline-profits: "You have earned #00B4DB$%amount%&f from #00B4DB%total%&f auctions while offline."
+auction-sold: "Your auction has been bought for #00B4DB%price%&f by #00B4DB%buyer%&f!"
+invalid-auction: "Please provide a valid auction ID."

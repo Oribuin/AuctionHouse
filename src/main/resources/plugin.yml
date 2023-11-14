@@ -1,9 +1,14 @@
 name: AuctionHouse
-main: xyz.oribuin.auctionhouse.AuctionHousePlugin
-version: 1.0.2
-api-version: 1.13
+main: xyz.oribuin.auctionhouse.AuctionHouse
+version: 1.1.0
+api-version: 1.16
 author: Oribuin
 description: A simple auction house plugin.
-softdepend:
+libraries:
+  - "net.kyori:adventure-api:4.11.0"
+  - "net.kyori:adventure-text-serializer-legacy:4.11.0"
+  - "net.kyori:adventure-text-serializer-gson:4.11.0"
+depend:
   - Vault
-  - PlaceholderAPI
+softdepend:
+  - HeadDatabase

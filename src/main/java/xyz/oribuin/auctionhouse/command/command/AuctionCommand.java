@@ -6,7 +6,7 @@ import dev.rosewood.rosegarden.command.framework.CommandContext;
 import dev.rosewood.rosegarden.command.framework.RoseCommandWrapper;
 import dev.rosewood.rosegarden.command.framework.annotation.RoseExecutable;
 import org.bukkit.entity.Player;
-import xyz.oribuin.auctionhouse.gui.MainAuctionMenu;
+import xyz.oribuin.auctionhouse.gui.MainAuctionsMenu;
 import xyz.oribuin.auctionhouse.manager.LocaleManager;
 import xyz.oribuin.auctionhouse.manager.MenuManager;
 
@@ -25,7 +25,7 @@ public class AuctionCommand extends BaseCommand {
             return;
         }
 
-        this.rosePlugin.getManager(MenuManager.class).get(MainAuctionMenu.class).open(player);
+        this.rosePlugin.getManager(MenuManager.class).get(MainAuctionsMenu.class).open(player);
     }
 
     @Override

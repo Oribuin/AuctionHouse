@@ -12,7 +12,6 @@ import xyz.oribuin.auctionhouse.manager.MenuManager;
 
 public class ViewCommand extends RoseCommand {
 
-
     public ViewCommand(RosePlugin rosePlugin, RoseCommandWrapper parent) {
         super(rosePlugin, parent);
     }

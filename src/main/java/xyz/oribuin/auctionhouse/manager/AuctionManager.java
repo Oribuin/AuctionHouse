@@ -3,27 +3,24 @@ package xyz.oribuin.auctionhouse.manager;
 import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.manager.Manager;
 import dev.rosewood.rosegarden.utils.StringPlaceholders;
-import io.github.bananapuncher714.nbteditor.NBTEditor;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.PermissionAttachmentInfo;
+import org.jetbrains.annotations.Nullable;
 import xyz.oribuin.auctionhouse.auction.Auction;
 import xyz.oribuin.auctionhouse.auction.OfflineProfits;
 import xyz.oribuin.auctionhouse.event.AuctionCreateEvent;
 import xyz.oribuin.auctionhouse.event.AuctionSoldEvent;
-import xyz.oribuin.auctionhouse.hook.VaultHook;
+import xyz.oribuin.auctionhouse.hook.VaultProvider;
 import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
 import xyz.oribuin.auctionhouse.manager.LogManager.LogMessage;
-import xyz.oribuin.auctionhouse.util.PluginUtils;
+import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -60,51 +57,51 @@ public class AuctionManager extends Manager {
      */
     public void createAuction(Player player, ItemStack item, double price) {
         final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        final int maxAuctions = this.getMaximumAuctions(player);
+        final int currentAuctions = this.getActive(player.getUniqueId()).size();
 
         // Check if the player has permission to create an auction
-        int maxAuctions = this.getMaximumAuctions(player);
-        int currentAuctions = this.getActiveAuctionsBySeller(player.getUniqueId()).size();
 
         if (currentAuctions >= maxAuctions) {
             final StringPlaceholders placeholders = StringPlaceholders.builder()
-                    .addPlaceholder("max", maxAuctions)
-                    .addPlaceholder("current", currentAuctions)
+                    .add("max", maxAuctions)
+                    .add("current", currentAuctions)
                     .build();
 
             locale.sendMessage(player, "command-sell-max-reached", placeholders);
             return;
         }
 
-        Long listTime = this.listingCooldown.get(player.getUniqueId());
-        double cooldownMillis = Settings.LIST_COOLDOWN.getDouble() * 1000.0;
+        final Long listTime = this.listingCooldown.get(player.getUniqueId());
+        final double cooldownMillis = Settings.LIST_COOLDOWN.getDouble() * 1000.0;
 
         // check if the player is on cooldown
         if (listTime != null && listTime + cooldownMillis > System.currentTimeMillis()) {
             // format the time remaining to 1 decimal place
-            String timeLeft = String.format("%.1f", (listTime + cooldownMillis - System.currentTimeMillis()) / 1000.0);
+            final String timeLeft = String.format("%.1f", (listTime + cooldownMillis - System.currentTimeMillis()) / 1000.0);
 
-            locale.sendMessage(player, "command-sell-cooldown", StringPlaceholders.single("time", timeLeft));
+            locale.sendMessage(player, "command-sell-cooldown", StringPlaceholders.of("time", timeLeft));
             return;
         }
 
         // Check if the player has enough money to create an auction
         double listPrice = Settings.LIST_PRICE.getDouble();
-        double playerBalance = VaultHook.getEconomy().getBalance(player);
+        double playerBalance = VaultProvider.get().balance(player);
 
         if (listPrice != 0 && listPrice > playerBalance) {
-            locale.sendMessage(player, "invalid-funds", StringPlaceholders.builder().addPlaceholder("price", listPrice).build());
+            locale.sendMessage(player, "invalid-funds", StringPlaceholders.builder().add("price", listPrice).build());
             return;
         }
 
         // Check if the price is in correct range
-        double minPrice = Settings.LIST_MIN.getDouble();
-        double maxPrice = Settings.LIST_MAX.getDouble();
+        final double minPrice = Settings.LIST_MIN.getDouble();
+        final double maxPrice = Settings.LIST_MAX.getDouble();
 
         if (price < minPrice || price > maxPrice) {
             final StringPlaceholders placeholders = StringPlaceholders.builder()
-                    .addPlaceholder("min", minPrice)
-                    .addPlaceholder("max", maxPrice)
-                    .addPlaceholder("price", price)
+                    .add("min", minPrice)
+                    .add("max", maxPrice)
+                    .add("price", price)
                     .build();
 
             locale.sendMessage(player, "command-sell-invalid-price", placeholders);
@@ -118,16 +115,6 @@ public class AuctionManager extends Manager {
 
         // Check if the item's material is allowed to be listed
         if (Settings.DISABLED_MATERIALS.getStringList().contains(item.getType().name())) {
-            locale.sendMessage(player, "command-sell-disabled-item");
-            return;
-        }
-
-        // Check if the item's NBT is allowed to be listed
-        boolean hasDisabledNBT = Settings.DISABLED_NBT.getStringList()
-                .stream()
-                .anyMatch(nbt -> NBTEditor.contains(item, nbt));
-
-        if (hasDisabledNBT) {
             locale.sendMessage(player, "command-sell-disabled-item");
             return;
         }
@@ -149,10 +136,10 @@ public class AuctionManager extends Manager {
             this.logManager.addLogMessage(LogMessage.AUCTION_CREATED, auction);
 
             if (listPrice > 0) {
-                VaultHook.getEconomy().withdrawPlayer(player, listPrice);
+                VaultProvider.get().take(player, listPrice);
             }
 
-            locale.sendMessage(player, "command-sell-success", StringPlaceholders.single("price", PluginUtils.formatCurrency(price)));
+            locale.sendMessage(player, "command-sell-success", StringPlaceholders.of("price", AuctionUtils.formatCurrency(price)));
         });
     }
 
@@ -164,23 +151,21 @@ public class AuctionManager extends Manager {
      */
     public void buyAuction(Player player, int auctionId) {
         final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-
-        Optional<Auction> optionalAuction = this.getAuctionById(auctionId);
-        if (optionalAuction.isEmpty()) {
+        final Auction auction = this.getAuction(auctionId);
+        if (auction == null) {
             locale.sendMessage(player, "command-buy-auction-gone");
             return;
         }
 
         // Stop the player from buying their own auction
-        if (optionalAuction.get().getSeller().equals(player.getUniqueId())) {
+        if (auction.getSeller() == player.getUniqueId()) {
             locale.sendMessage(player, "command-buy-own-auction");
             return;
         }
 
-        final Auction auction = optionalAuction.get();
 
         // Make sure the auction is has not been sold or expired
-        if (auction.isSold() || this.isAuctionExpired(auction)) {
+        if (auction.isSold() || auction.isExpired()) {
             locale.sendMessage(player, "command-buy-auction-gone");
             return;
         }
@@ -189,13 +174,12 @@ public class AuctionManager extends Manager {
         double buyPrice = auction.getPrice();
         buyPrice = buyPrice - (buyPrice * Settings.LIST_TAX.getDouble());
 
-        double playerBalance = VaultHook.getEconomy().getBalance(player);
+        double playerBalance = VaultProvider.get().balance(player);
 
         if (auction.getPrice() > playerBalance) {
-            locale.sendMessage(player, "invalid-funds", StringPlaceholders.builder().addPlaceholder("price", PluginUtils.formatCurrency(buyPrice)).build());
+            locale.sendMessage(player, "invalid-funds", StringPlaceholders.builder().add("price", AuctionUtils.formatCurrency(buyPrice)).build());
             return;
         }
-
 
         // Remove the item and check if it has been removed
         ItemStack item = auction.getItem();
@@ -217,13 +201,14 @@ public class AuctionManager extends Manager {
 
             player.getInventory().addItem(item);
 
-            VaultHook.getEconomy().withdrawPlayer(player, auction.getPrice());
-            VaultHook.getEconomy().depositPlayer(seller, finalBuyPrice);
+            final VaultProvider provider = VaultProvider.get();
+            provider.take(player, auction.getPrice());
+            provider.give(seller, finalBuyPrice);
 
             final StringPlaceholders placeholders = StringPlaceholders.builder()
-                    .addPlaceholder("price", PluginUtils.formatCurrency(auction.getPrice()))
-                    .addPlaceholder("seller", seller.getName())
-                    .addPlaceholder("buyer", player.getName())
+                    .add("price", AuctionUtils.formatCurrency(auction.getPrice()))
+                    .add("seller", seller.getName())
+                    .add("buyer", player.getName())
                     .build();
 
 
@@ -245,13 +230,12 @@ public class AuctionManager extends Manager {
      *
      * @param auction The auction to expire
      */
-    public void expireAuction(Auction auction) {
+    public void expire(Auction auction) {
         if (auction.isExpired()) {
             return;
         }
 
         this.logManager.addLogMessage(LogMessage.AUCTION_EXPIRED, auction);
-
 
         auction.setExpired(true);
         auction.setSold(false);
@@ -262,38 +246,49 @@ public class AuctionManager extends Manager {
     /**
      * Delete an auction from the database
      *
-     * @param auction The auction to delete
+     * @param auction  The auction to delete
+     * @param callback The result of the deletion
      */
-    public void deleteAuction(Auction auction, Consumer<Auction> callback) {
-
+    public void delete(Auction auction, Consumer<Auction> callback) {
         auction.setExpired(true);
         auction.setSold(true);
-        this.data.deleteAuction(auction, callback);
-        this.logManager.addLogMessage(LogMessage.AUCTION_DELETED, auction);
+        this.data.deleteAuction(auction, callback.andThen(
+                x -> this.logManager.addLogMessage(LogMessage.AUCTION_DELETED, auction)));
     }
 
+    /**
+     * Delete an auction from the database
+     *
+     * @param auction The auction to delete
+     */
+    public void delete(Auction auction) {
+        auction.setExpired(true);
+        auction.setSold(true);
+
+        this.delete(auction, callback -> this.logManager.addLogMessage(LogMessage.AUCTION_DELETED, auction));
+    }
 
     /**
      * Send the player their offline profits
      *
      * @param player The player to load
      */
-    public void showOfflineProfits(Player player) {
+    public void showProfit(Player player) {
         final OfflineProfits profits = this.data.getOfflineProfitsCache().getOrDefault(player.getUniqueId(), new OfflineProfits(0, 0));
         final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
 
         // Don't show the player their offline profits if they have none
-        if (profits.getProfit() <= 0) {
+        if (profits.profit() <= 0) {
             return;
         }
 
         final StringPlaceholders placeholders = StringPlaceholders.builder()
-                .addPlaceholder("amount", PluginUtils.formatCurrency(profits.getProfit()))
-                .addPlaceholder("total", profits.getSold())
+                .add("amount", AuctionUtils.formatCurrency(profits.profit()))
+                .add("total", profits.sold())
                 .build();
 
         locale.sendMessage(player, "offline-profits", placeholders);
-        this.resetOfflineProfit(player.getUniqueId());
+        this.resetProfit(player.getUniqueId());
     }
 
     /**
@@ -302,10 +297,10 @@ public class AuctionManager extends Manager {
      * @param player  The player to add
      * @param auction The auction they sold
      */
-    public void addOfflineProfit(UUID player, Auction auction) {
+    public void addProfit(UUID player, Auction auction) {
         final OfflineProfits offlineProfits = this.data.getOfflineProfitsCache().getOrDefault(player, new OfflineProfits(0, 0));
-        double profits = offlineProfits.getProfit() + auction.getSoldPrice();
-        int sold = offlineProfits.getSold() + 1;
+        double profits = offlineProfits.profit() + auction.getSoldPrice();
+        int sold = offlineProfits.sold() + 1;
 
         this.data.saveProfits(player, new OfflineProfits(profits, sold));
     }
@@ -315,17 +310,8 @@ public class AuctionManager extends Manager {
      *
      * @param player The player to reset
      */
-    public void resetOfflineProfit(UUID player) {
+    public void resetProfit(UUID player) {
         this.data.saveProfits(player, new OfflineProfits(0, 0));
-    }
-
-    /**
-     * Get all auctions that haven't been deleted yet
-     *
-     * @return a list of auctions
-     */
-    public Map<Integer, Auction> getAllAuctions() {
-        return this.data.getAuctionCache();
     }
 
     /**
@@ -334,8 +320,9 @@ public class AuctionManager extends Manager {
      * @param id the id of the auction
      * @return the auction
      */
-    public Optional<Auction> getAuctionById(int id) {
-        return Optional.ofNullable(this.data.getAuctionCache().get(id));
+    @Nullable
+    public Auction getAuction(int id) {
+        return this.data.getAuctionCache().get(id);
     }
 
     /**
@@ -344,11 +331,11 @@ public class AuctionManager extends Manager {
      * @param uuid the uuid of the player
      * @return a list of auctions
      */
-    public List<Auction> getAuctionsBySeller(UUID uuid) {
+    public List<Auction> getAuctions(UUID uuid) {
         return this.data.getAuctionCache().values()
                 .stream()
                 .filter(auction -> auction.getSeller().equals(uuid))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
@@ -356,50 +343,49 @@ public class AuctionManager extends Manager {
      *
      * @return a list of auctions
      */
-    public List<Auction> getActiveActions() {
+    public List<Auction> getActive() {
         return this.data.getAuctionCache().values()
                 .stream()
                 .filter(auction -> !auction.isSold() && !auction.isExpired())
-                .collect(java.util.stream.Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     /**
-     * Get all auctions that have not expired or sold yet
+     * Get all auctions that have not expired or sold yet from a seller
      *
-     * @param uuid the uuid of the player
+     * @param seller the uuid of the player
      * @return a list of auctions
      */
-    public List<Auction> getActiveAuctionsBySeller(UUID uuid) {
-        return this.getAuctionsBySeller(uuid)
+    public List<Auction> getActive(UUID seller) {
+        return this.data.getAuctionCache().values()
                 .stream()
-                .filter(auction -> !auction.isSold() && !auction.isExpired())
+                .filter(auction -> auction.getSeller().equals(seller) && !auction.isSold() && !auction.isExpired())
                 .collect(Collectors.toList());
     }
 
     /**
      * Get all auctions that are expired
      *
-     * @param uuid the uuid of the player
+     * @param seller the uuid of the player
      * @return a list of expired auctions
      */
-    public List<Auction> getExpiredAuctionsBySeller(UUID uuid) {
-        return this.getAuctionsBySeller(uuid)
+    public List<Auction> getExpired(UUID seller) {
+        return this.data.getAuctionCache().values()
                 .stream()
-                .filter(Auction::isExpired)
+                .filter(auction -> auction.getSeller().equals(seller) && auction.isExpired())
                 .collect(Collectors.toList());
     }
 
     /**
      * Get all auctions that are sold by a player
      *
-     * @param uuid the uuid of the player
+     * @param seller the uuid of the player
      * @return a list of auctions
      */
-    public List<Auction> getSoldAuctionsBySeller(UUID uuid) {
+    public List<Auction> getSold(UUID seller) {
         return this.data.getAuctionCache().values()
                 .stream()
-                .filter(Auction::isSold)
-                .filter(auction -> auction.getSeller().equals(uuid))
+                .filter(auction -> auction.getSeller().equals(seller) && auction.isSold())
                 .collect(Collectors.toList());
     }
 
@@ -416,85 +402,6 @@ public class AuctionManager extends Manager {
                 .distinct()
                 .map(Bukkit::getOfflinePlayer)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Get the time left for an auction
-     *
-     * @param auction the auction
-     * @return the time left in milliseconds
-     */
-    public long getTimeLeft(Auction auction) {
-        // get the amount of time left since the auction was created in milliseconds
-        long timeLeft = Duration.between(Instant.now(), Instant.ofEpochMilli(auction.getCreatedTime() + this.getEndTime())).toMillis();
-
-        if (timeLeft <= 0) {
-            timeLeft = 0;
-        }
-        return timeLeft;
-    }
-
-
-    /**
-     * Check if a player's inventory can hold an item.
-     *
-     * @param player the player to check
-     * @return true if the player's inventory can hold the item
-     */
-    public boolean canHoldItem(Player player) {
-        return player.getInventory().firstEmpty() != -1;
-    }
-
-    /**
-     * Get the time until auctions expire
-     *
-     * @return time until auctions expire
-     */
-    public long getEndTime() {
-        return PluginUtils.parseTime(Settings.LIST_TIME.getString());
-    }
-
-    /**
-     * Check if an auction is expired
-     *
-     * @param auction the auction to check
-     * @return true if the auction is expired
-     */
-    public boolean isAuctionExpired(Auction auction) {
-        if (auction.isExpired()) {
-            return true;
-        }
-
-        return auction.getCreatedTime() + this.getEndTime() < System.currentTimeMillis();
-    }
-
-    /**
-     * Check if an auction has expired
-     *
-     * @param id the id of the auction
-     * @return true if the auction is expired
-     */
-    public boolean isAuctionExpired(int id) {
-        return this.getAuctionById(id).map(this::isAuctionExpired).orElse(false);
-    }
-
-    /**
-     * Check if an auction is sold
-     *
-     * @param auction the auction to check
-     * @return true if the auction is sold
-     */
-    public boolean isAuctionSold(Auction auction) {
-        return auction.isSold();
-    }
-
-    /**
-     * Check if an auction is sold
-     *
-     * @param id the id of the auction
-     */
-    public boolean isAuctionSold(int id) {
-        return this.getAuctionById(id).map(this::isAuctionSold).orElse(false);
     }
 
     /**
@@ -519,7 +426,5 @@ public class AuctionManager extends Manager {
 
         return amount;
     }
-
-    // TODO: Create a queue system so the player knows their auction has been sold
 
 }

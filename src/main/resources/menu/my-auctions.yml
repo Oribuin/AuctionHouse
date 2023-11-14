@@ -1,0 +1,89 @@
+# GUI Settings
+gui-settings:
+  pre-title: "Loading..."
+  title: "My Auctions | %page%/%total%"
+  rows: 5
+  scrolling-gui: false
+  scrolling-type: VERTICAL
+
+# Auction House Item Settings
+auction-settings:
+  lore:
+    - " &8------ #00B4DB&lSelling Item &8------"
+    - " &f| &7Price: &f%price%"
+    - " &f| &7Time: &f%time%"
+    - " &f| &7Seller: &f%seller%"
+    - " &f|"
+    - " &f| &7Click to cancel auction."
+    - " &f| &7Cancelled auctions are expired."
+    - " &8-------------------------"
+
+# Sold Auctions Item
+sold-auctions:
+  enabled: true
+  material: GOLD_INGOT
+  name: "#00B4DB&lSold Auctions"
+  lore:
+    - " &f| &7Click to view all"
+    - " &f| &7of your sold auctions."
+  slot: 3
+
+# Expired Auctions Item
+expired-auctions:
+  enabled: true
+  material: CLOCK
+  name: "#00B4DB&lExpired Auctions"
+  lore:
+    - " &f| &7Click to view all"
+    - " &f| &7of your expired auctions."
+  slot: 5
+
+# Main Menu Item
+main-menu:
+  enabled: true
+  material: BEACON
+  name: "#00B4DB&lMain Menu"
+  lore:
+    - " &f| &7Click to return to"
+    - " &f| &7the main menu."
+  slot: 4
+
+# Previous Page Item
+previous-page:
+  enabled: true
+  material: ARROW
+  name: "#00B4DB&lPrevious Page"
+  lore:
+    - " &f| &7Click to go to the"
+    - " &f| &7previous page."
+  slot: 39
+
+# Refresh Item
+refresh-menu:
+  enabled: true
+  material: SUNFLOWER
+  name: "#00B4DB&lRefresh"
+  lore:
+    - " &f| &7Click to refresh"
+    - " &f| &7the auction list."
+  slot: 40
+
+# Next Page Item
+next-page:
+  enabled: true
+  material: ARROW
+  name: "#00B4DB&lNext Page"
+  lore:
+    - " &f| &7Click to go to the"
+    - " &f| &7next page."
+  slot: 41
+
+# Extra Items
+extra-items:
+  1:
+    enabled: true
+    material: BLACK_STAINED_GLASS_PANE
+    name: " "
+    slots:
+      - 0-8
+      - 36-44

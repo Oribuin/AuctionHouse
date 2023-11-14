@@ -3,7 +3,11 @@ package xyz.oribuin.auctionhouse.auction;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
+import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
+import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -39,6 +43,40 @@ public class Auction {
         this.sold = false;
     }
 
+    /**
+     * Is the auction expired?
+     *
+     * @return true if the auction is expired
+     */
+    public boolean isExpired() {
+        if (this.expired) return true;
+
+        return this.createdTime + AuctionUtils.parseTime(Settings.LIST_TIME.getString()) <= System.currentTimeMillis();
+    }
+
+    /**
+     * Get the time until an auction expires
+     *
+     * @return the time until the auction expires
+     */
+    public long getTimeLeft() {
+        final long left = Duration.between(
+                Instant.now(),
+                Instant.ofEpochMilli(this.createdTime + AuctionUtils.parseTime(Settings.LIST_TIME.getString()))
+        ).toMillis();
+
+        return Math.max(left, 0);
+    }
+
+    /**
+     * Get the seller of the auction as a player object
+     *
+     * @return the seller of the auction
+     */
+    public OfflinePlayer getSellerPlayer() {
+        return Bukkit.getOfflinePlayer(this.seller);
+    }
+
     public int getId() {
         return id;
     }
@@ -51,10 +89,6 @@ public class Auction {
         return seller;
     }
 
-    public OfflinePlayer getSellerPlayer() {
-        return Bukkit.getOfflinePlayer(this.seller);
-    }
-
     public ItemStack getItem() {
         return item;
     }
@@ -63,40 +97,20 @@ public class Auction {
         return price;
     }
 
+    public double getSoldPrice() {
+        return soldPrice;
+    }
+
+    public void setSoldPrice(double soldPrice) {
+        this.soldPrice = soldPrice;
+    }
+
     public UUID getBuyer() {
         return buyer;
     }
 
-    public OfflinePlayer getBuyerPlayer() {
-        return Bukkit.getOfflinePlayer(this.buyer);
-    }
-
     public void setBuyer(UUID buyer) {
         this.buyer = buyer;
-    }
-
-    public boolean isExpired() {
-        return expired;
-    }
-
-    public void setExpired(boolean expired) {
-        this.expired = expired;
-    }
-
-    public boolean isSold() {
-        return sold;
-    }
-
-    public void setSold(boolean sold) {
-        this.sold = sold;
-    }
-
-    public long getSoldTime() {
-        return soldTime;
-    }
-
-    public void setSoldTime(long soldTime) {
-        this.soldTime = soldTime;
     }
 
     public long getCreatedTime() {
@@ -115,11 +129,24 @@ public class Auction {
         this.expiredTime = expiredTime;
     }
 
-    public double getSoldPrice() {
-        return soldPrice;
+    public long getSoldTime() {
+        return soldTime;
     }
 
-    public void setSoldPrice(double soldPrice) {
-        this.soldPrice = soldPrice;
+    public void setSoldTime(long soldTime) {
+        this.soldTime = soldTime;
     }
+
+    public void setExpired(boolean expired) {
+        this.expired = expired;
+    }
+
+    public boolean isSold() {
+        return sold;
+    }
+
+    public void setSold(boolean sold) {
+        this.sold = sold;
+    }
+
 }
