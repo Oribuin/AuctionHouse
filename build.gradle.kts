@@ -36,7 +36,7 @@ repositories {
 dependencies {
     api("dev.rosewood:rosegarden:1.2.5")
     api("org.jetbrains:annotations:24.0.0")
-    api("dev.triumphteam:triumph-gui:3.1.7") { // Any higher versions stops the gui functioning
+    api("dev.triumphteam:triumph-gui:3.1.7") {
         exclude(group = "com.google.code.gson", module = "gson")
         exclude(group = "net.kyori", module = "*")
     }

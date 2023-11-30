@@ -57,6 +57,7 @@ public final class SkullUtils {
                 Bukkit.getLogger().severe("Failed to set skull texture: " + e.getMessage());
             }
 
+            profile.setTextures(textures);
             skullMeta.setOwnerProfile(profile);
             return;
         }
@@ -99,6 +100,7 @@ public final class SkullUtils {
             e.printStackTrace();
         }
 
+        profile.setTextures(textures);
         meta.setPlayerProfile(profile);
 
     }
