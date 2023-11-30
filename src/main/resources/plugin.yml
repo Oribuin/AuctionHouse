@@ -12,3 +12,48 @@ depend:
   - Vault
 softdepend:
   - HeadDatabase
+permissions:
+  auctionhouse.*:
+    description: Gives access to all AuctionHouse commands.
+    default: op
+    children:
+      - auctionhouse.admin
+      - auctionhouse.admin.check
+      - auctionhouse.admin.delete
+      - auctionhouse.admin.expire
+      - auctionhouse.admin.get
+      - auctionhouse.sell
+      - auctionhouse.use
+      - auctionhouse.reload
+      - auctionhouse.view
+      - auctionhouse.limit.999
+  auctionhouse.use:
+    description: Gives access to use the AuctionHouse.
+    default: true
+    children:
+      - auctionhouse.view
+  auctionhouse.view:
+    description: Gives access to view the AuctionHouse.
+    default: true
+  auctionhouse.sell:
+    description: Gives access to sell items on the AuctionHouse.
+    default: true
+    children:
+      - auctionhouse.limit.1
+  auctionhouse.limit.1:
+    description: Gives access to sell 1 item on the AuctionHouse.
+    default: true
+    children:
+      - auctionhouse.limit.2
+  auctionhouse.admin:
+    description: Gives access to all AuctionHouse admin commands.
+    default: op
+    children:
+      - auctionhouse.admin.check
+      - auctionhouse.admin.delete
+      - auctionhouse.admin.expire
+      - auctionhouse.admin.get
+      - auctionhouse.reload
+  auctionhouse.reload:
+    description: Gives access to reload the AuctionHouse.
+    default: op
