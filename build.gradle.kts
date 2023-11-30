@@ -1,7 +1,9 @@
+import java.net.URI
+
 plugins {
     id("java-library")
     id("com.github.johnrengelman.shadow") version "7.1.0"
-//    id("maven-publish")
+    id("maven-publish")
 }
 
 
@@ -50,6 +52,34 @@ dependencies {
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.1")
 }
 
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            project.shadow.component(this)
+
+            artifactId = "auctionhouse"
+            pom {
+                name.set("auctionhouse")
+            }
+        }
+
+        repositories {
+            if (project.hasProperty("mavenUser") && project.hasProperty("mavenPassword")) {
+                maven {
+                    credentials {
+                        username = project.property("mavenUser") as String
+                        password = project.property("mavenPassword") as String
+                    }
+
+                    val releasesRepoUrl = "https://repo.rosewooddev.io/repository/public-releases/"
+                    val snapshotsRepoUrl = "https://repo.rosewooddev.io/repository/public-snapshots/"
+                    url = URI(if (version.toString().endsWith("SNAPSHOT")) snapshotsRepoUrl else releasesRepoUrl)
+                }
+            }
+
+        }
+    }
+}
 
 tasks {
 
