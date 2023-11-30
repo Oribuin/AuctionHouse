@@ -89,11 +89,7 @@ public class SoldAuctionsMenu extends PluginMenu {
 
         final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
         final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final List<String> auctionLore = new ArrayList<>(
-                player.hasPermission("auctionhouse.admin")
-                        ? this.config.getStringList("auction-item.admin-lore")
-                        : this.config.getStringList("auction-item.lore")
-        );
+        final List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-settings.lore"));
 
         this.async(() -> {
             final List<Auction> auctions = new ArrayList<>(manager.getSold(player.getUniqueId()));

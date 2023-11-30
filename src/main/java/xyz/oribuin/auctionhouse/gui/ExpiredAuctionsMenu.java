@@ -92,7 +92,7 @@ public class ExpiredAuctionsMenu extends PluginMenu {
                 final List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
                 final StringPlaceholders placeholders = StringPlaceholders.of(
                         "price", AuctionUtils.formatCurrency(auction.getPrice()),
-                        "expired", AuctionUtils.formatTime(auction.getExpiredTime() - System.currentTimeMillis())
+                        "expired", AuctionUtils.getDate(auction.getExpiredTime())
                 );
 
                 auctionLore.forEach(line -> itemLore.add(locale.format(player, line, placeholders)));

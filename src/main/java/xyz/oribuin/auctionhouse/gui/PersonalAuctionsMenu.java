@@ -87,7 +87,7 @@ public class PersonalAuctionsMenu extends PluginMenu {
 
         final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
         final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-item.lore"));
+        final List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-settings.lore"));
 
         this.async(() -> {
             final List<Auction> auctions = new ArrayList<>(manager.getActive(player.getUniqueId()));

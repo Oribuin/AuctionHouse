@@ -23,6 +23,7 @@ import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
 import xyz.oribuin.auctionhouse.manager.LocaleManager;
 
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -105,6 +106,16 @@ public final class AuctionUtils {
         builder.append(seconds).append("s");
 
         return builder.toString();
+    }
+
+    /**
+     * Get the date from a time in milliseconds
+     *
+     * @param time The time in milliseconds
+     * @return The date
+     */
+    public static String getDate(long time) {
+        return new SimpleDateFormat(Settings.DATE_FORMAT. getString()).format(time);
     }
 
 

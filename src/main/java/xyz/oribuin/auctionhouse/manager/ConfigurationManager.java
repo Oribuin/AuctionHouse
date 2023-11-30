@@ -29,6 +29,7 @@ public class ConfigurationManager extends AbstractConfigurationManager {
         MONEY_LOCALE("money-locale", Locale.US.toLanguageTag(), "The locale to use for money formatting"),
         AUCTION_LOGGING("auction-logging", false, "Should auction logs be logged?"),
         DISABLED_MATERIALS("disabled-materials", Arrays.asList("BEDROCK", "END_PORTAL_FRAME"), "The materials that are disabled from being listed"),
+        DATE_FORMAT("date-format", "hh:mma 'on' dd MMM yy", "The date format to use for dates in the plugin"),
         ;
 
         private final String key;

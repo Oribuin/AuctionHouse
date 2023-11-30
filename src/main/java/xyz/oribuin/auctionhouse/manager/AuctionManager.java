@@ -41,6 +41,8 @@ public class AuctionManager extends Manager {
         this.logManager = this.rosePlugin.getManager(LogManager.class);
         this.data = this.rosePlugin.getManager(DataManager.class);
         this.data.loadAuctions();
+
+        Bukkit.getOnlinePlayers().forEach(player -> this.data.loadUserAuctions(player.getUniqueId()));
     }
 
     @Override

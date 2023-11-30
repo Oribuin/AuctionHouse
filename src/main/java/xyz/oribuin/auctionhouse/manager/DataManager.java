@@ -65,7 +65,7 @@ public class DataManager extends AbstractDataManager {
                 }
             }
 
-            this.rosePlugin.getLogger().info("Loaded " + this.auctionCache.size() + "active auctions from the database.");
+            this.rosePlugin.getLogger().info("Loaded " + this.auctionCache.size() + " active auctions from the database.");
             this.rosePlugin.getLogger().info("Loading offline profits from database...");
 
             try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "offline_profits")) {
