@@ -92,13 +92,13 @@ public class MenuItem {
             }
 
             // Then we check for the multiple slots
-            final boolean hasMultiSlots = this.config.get(this.itemPath + ".slots") != null;
+            boolean hasMultiSlots = this.config.get(this.itemPath + ".slots") != null;
             if (hasMultiSlots) {
                 this.slots(AuctionUtils.parseList(this.config.getStringList(this.itemPath + ".slots")));
             }
         }
 
-        final ItemStack item = this.customItem != null
+        ItemStack item = this.customItem != null
                 ? this.customItem
                 : AuctionUtils.deserialize(this.config, this.player, this.itemPath, this.placeholders);
 

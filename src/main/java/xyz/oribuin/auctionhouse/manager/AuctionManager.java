@@ -11,10 +11,10 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.jetbrains.annotations.Nullable;
 import xyz.oribuin.auctionhouse.auction.Auction;
 import xyz.oribuin.auctionhouse.auction.OfflineProfits;
+import xyz.oribuin.auctionhouse.config.Setting;
 import xyz.oribuin.auctionhouse.event.AuctionCreateEvent;
 import xyz.oribuin.auctionhouse.event.AuctionSoldEvent;
 import xyz.oribuin.auctionhouse.hook.VaultProvider;
-import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
 import xyz.oribuin.auctionhouse.manager.LogManager.LogMessage;
 import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
@@ -58,14 +58,14 @@ public class AuctionManager extends Manager {
      * @param price  The price of the item
      */
     public void createAuction(Player player, ItemStack item, double price) {
-        final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final int maxAuctions = this.getMaximumAuctions(player);
-        final int currentAuctions = this.getActive(player.getUniqueId()).size();
+        LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        int maxAuctions = this.getMaximumAuctions(player);
+        int currentAuctions = this.getActive(player.getUniqueId()).size();
 
         // Check if the player has permission to create an auction
 
         if (currentAuctions >= maxAuctions) {
-            final StringPlaceholders placeholders = StringPlaceholders.builder()
+            StringPlaceholders placeholders = StringPlaceholders.builder()
                     .add("max", maxAuctions)
                     .add("current", currentAuctions)
                     .build();
@@ -74,20 +74,20 @@ public class AuctionManager extends Manager {
             return;
         }
 
-        final Long listTime = this.listingCooldown.get(player.getUniqueId());
-        final double cooldownMillis = Settings.LIST_COOLDOWN.getDouble() * 1000.0;
+        Long listTime = this.listingCooldown.get(player.getUniqueId());
+        double cooldownMillis = Setting.LIST_COOLDOWN.get() * 1000.0;
 
         // check if the player is on cooldown
         if (listTime != null && listTime + cooldownMillis > System.currentTimeMillis()) {
             // format the time remaining to 1 decimal place
-            final String timeLeft = String.format("%.1f", (listTime + cooldownMillis - System.currentTimeMillis()) / 1000.0);
+            String timeLeft = String.format("%.1f", (listTime + cooldownMillis - System.currentTimeMillis()) / 1000.0);
 
             locale.sendMessage(player, "command-sell-cooldown", StringPlaceholders.of("time", timeLeft));
             return;
         }
 
         // Check if the player has enough money to create an auction
-        double listPrice = Settings.LIST_PRICE.getDouble();
+        double listPrice = Setting.LIST_PRICE.get();
         double playerBalance = VaultProvider.get().balance(player);
 
         if (listPrice != 0 && listPrice > playerBalance) {
@@ -96,11 +96,11 @@ public class AuctionManager extends Manager {
         }
 
         // Check if the price is in correct range
-        final double minPrice = Settings.LIST_MIN.getDouble();
-        final double maxPrice = Settings.LIST_MAX.getDouble();
+        double minPrice = Setting.LIST_MIN.get();
+        double maxPrice = Setting.LIST_MAX.get();
 
         if (price < minPrice || price > maxPrice) {
-            final StringPlaceholders placeholders = StringPlaceholders.builder()
+            StringPlaceholders placeholders = StringPlaceholders.builder()
                     .add("min", minPrice)
                     .add("max", maxPrice)
                     .add("price", price)
@@ -116,7 +116,7 @@ public class AuctionManager extends Manager {
         }
 
         // Check if the item's material is allowed to be listed
-        if (Settings.DISABLED_MATERIALS.getStringList().contains(item.getType().name())) {
+        if (Setting.DISABLED_MATERIALS.get().contains(item.getType())) {
             locale.sendMessage(player, "command-sell-disabled-item");
             return;
         }
@@ -152,8 +152,8 @@ public class AuctionManager extends Manager {
      * @param auctionId The id of the auction being bought
      */
     public void buyAuction(Player player, int auctionId) {
-        final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final Auction auction = this.getAuction(auctionId);
+        LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        Auction auction = this.getAuction(auctionId);
         if (auction == null) {
             locale.sendMessage(player, "command-buy-auction-gone");
             return;
@@ -174,7 +174,7 @@ public class AuctionManager extends Manager {
 
         // Check if the player has enough money to buy an auction
         double buyPrice = auction.getPrice();
-        buyPrice = buyPrice - (buyPrice * Settings.LIST_TAX.getDouble());
+        buyPrice = buyPrice - (buyPrice * Setting.LIST_TAX.get());
 
         double playerBalance = VaultProvider.get().balance(player);
 
@@ -203,11 +203,11 @@ public class AuctionManager extends Manager {
 
             player.getInventory().addItem(item);
 
-            final VaultProvider provider = VaultProvider.get();
+            VaultProvider provider = VaultProvider.get();
             provider.take(player, auction.getPrice());
             provider.give(seller, finalBuyPrice);
 
-            final StringPlaceholders placeholders = StringPlaceholders.builder()
+            StringPlaceholders placeholders = StringPlaceholders.builder()
                     .add("price", AuctionUtils.formatCurrency(auction.getPrice()))
                     .add("seller", seller.getName())
                     .add("buyer", player.getName())
@@ -276,15 +276,15 @@ public class AuctionManager extends Manager {
      * @param player The player to load
      */
     public void showProfit(Player player) {
-        final OfflineProfits profits = this.data.getOfflineProfitsCache().getOrDefault(player.getUniqueId(), new OfflineProfits(0, 0));
-        final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        OfflineProfits profits = this.data.getOfflineProfitsCache().getOrDefault(player.getUniqueId(), new OfflineProfits(0, 0));
+        LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
 
         // Don't show the player their offline profits if they have none
         if (profits.profit() <= 0) {
             return;
         }
 
-        final StringPlaceholders placeholders = StringPlaceholders.builder()
+        StringPlaceholders placeholders = StringPlaceholders.builder()
                 .add("amount", AuctionUtils.formatCurrency(profits.profit()))
                 .add("total", profits.sold())
                 .build();
@@ -300,7 +300,7 @@ public class AuctionManager extends Manager {
      * @param auction The auction they sold
      */
     public void addProfit(UUID player, Auction auction) {
-        final OfflineProfits offlineProfits = this.data.getOfflineProfitsCache().getOrDefault(player, new OfflineProfits(0, 0));
+        OfflineProfits offlineProfits = this.data.getOfflineProfitsCache().getOrDefault(player, new OfflineProfits(0, 0));
         double profits = offlineProfits.profit() + auction.getSoldPrice();
         int sold = offlineProfits.sold() + 1;
 
@@ -415,7 +415,7 @@ public class AuctionManager extends Manager {
     public int getMaximumAuctions(Player player) {
         int amount = 1;
         for (PermissionAttachmentInfo info : player.getEffectivePermissions()) {
-            final String target = info.getPermission().toLowerCase();
+            String target = info.getPermission().toLowerCase();
 
             if (target.startsWith("auctionhouse.limit.") && info.getValue()) {
                 try {

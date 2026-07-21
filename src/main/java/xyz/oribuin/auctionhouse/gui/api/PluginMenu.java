@@ -28,11 +28,12 @@ public abstract class PluginMenu {
         this.rosePlugin = rosePlugin;
         this.menuName = menuName;
     }
+
     /**
      * Create the menu file if it doesn't exist and add the default values
      */
     public void load() {
-        final File menuFile = FileUtils.createFile(this.rosePlugin, "menu", this.menuName + ".yml");
+        File menuFile = FileUtils.createFile(this.rosePlugin, "menu", this.menuName + ".yml");
         this.config = CommentedFileConfiguration.loadConfiguration(menuFile);
         this.config.save(menuFile);
     }
@@ -45,8 +46,8 @@ public abstract class PluginMenu {
      */
     @NotNull
     protected final Gui createGUI(Player player) {
-        final int rows = this.config.getInt("gui-settings.rows");
-        final String title = this.config.getString("gui-settings.title", "Missing Title");
+        int rows = this.config.getInt("gui-settings.rows");
+        String title = this.config.getString("gui-settings.title", "Missing Title");
 
         return Gui.gui()
                 .rows(rows == 0 ? 6 : rows)
@@ -67,8 +68,8 @@ public abstract class PluginMenu {
             return this.createScrollingGui(player);
         }
 
-        final int rows = this.config.getInt("gui-settings.rows");
-        final String preTitle = this.config.getString("gui-settings.pre-title", "Missing Pre Title");
+        int rows = this.config.getInt("gui-settings.rows");
+        String preTitle = this.config.getString("gui-settings.pre-title", "Missing Pre Title");
 
         return Gui.paginated()
                 .rows(rows == 0 ? 6 : rows)
@@ -86,9 +87,9 @@ public abstract class PluginMenu {
      */
     @NotNull
     protected final ScrollingGui createScrollingGui(Player player) {
-        final int rows = this.config.getInt("gui-settings.rows");
-        final String preTitle = this.config.getString("gui-settings.pre-title", "Missing Pre Title");
-        final ScrollType scrollType = AuctionUtils.getEnum(
+        int rows = this.config.getInt("gui-settings.rows");
+        String preTitle = this.config.getString("gui-settings.pre-title", "Missing Pre Title");
+        ScrollType scrollType = AuctionUtils.getEnum(
                 ScrollType.class,
                 this.config.getString("gui-settings.scroll-type"),
                 ScrollType.VERTICAL
@@ -111,7 +112,7 @@ public abstract class PluginMenu {
      * @return The formatted string
      */
     protected final Component format(Player player, String text) {
-        final String result = this.rosePlugin.getManager(LocaleManager.class).format(
+        String result = this.rosePlugin.getManager(LocaleManager.class).format(
                 player,
                 text,
                 StringPlaceholders.empty()
@@ -129,7 +130,7 @@ public abstract class PluginMenu {
      * @return The formatted string
      */
     protected final Component format(Player player, String text, StringPlaceholders placeholders) {
-        final String result = this.rosePlugin.getManager(LocaleManager.class).format(
+        String result = this.rosePlugin.getManager(LocaleManager.class).format(
                 player,
                 text,
                 StringPlaceholders.empty()
@@ -196,7 +197,7 @@ public abstract class PluginMenu {
      * @param gui The gui
      */
     public final void updateTitle(final BaseGui gui) {
-        final String newTitle = this.config.getString("gui-settings.title", "Missing Title (menus/" + this.menuName + ".yml)");
+        String newTitle = this.config.getString("gui-settings.title", "Missing Title (menus/" + this.menuName + ".yml)");
 
         this.sync(() -> gui.updateTitle(this.formatString(null, newTitle, this.getPagePlaceholders(gui))));
     }

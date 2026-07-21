@@ -4,8 +4,13 @@ import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.manager.AbstractLocaleManager;
 import dev.rosewood.rosegarden.utils.HexUtils;
 import dev.rosewood.rosegarden.utils.StringPlaceholders;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.checkerframework.checker.formatter.qual.ReturnsFormat;
 import org.jetbrains.annotations.NotNull;
+import me.clip.placeholderapi.PlaceholderAPI;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,6 +130,7 @@ public class LocaleManager extends AbstractLocaleManager {
         if (placeholders == null)
             placeholders = StringPlaceholders.empty();
 
+        
         return HexUtils.colorify(this.parsePlaceholders(sender, placeholders.apply(message)));
     }
 
@@ -150,6 +156,8 @@ public class LocaleManager extends AbstractLocaleManager {
         }
         return formattedMessages;
     }
-
-
+    public String parsePlaceholders(CommandSender sender, String message) {
+        return PlaceholderAPI.setPlaceholders(sender instanceof Player player ? player : null, message);
+    }
+    
 }

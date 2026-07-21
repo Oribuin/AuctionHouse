@@ -18,9 +18,9 @@ public class ConfirmMenu extends PluginMenu {
     }
 
     public void open(@NotNull Player player, @NotNull Auction auction) {
-        final Gui gui = this.createGUI(player);
-        final StringPlaceholders placeholders = StringPlaceholders.of("price", auction.getPrice());
-        final CommentedConfigurationSection extras = this.config.getConfigurationSection("extra-items");
+        Gui gui = this.createGUI(player);
+        StringPlaceholders placeholders = StringPlaceholders.of("price", auction.getPrice());
+        CommentedConfigurationSection extras = this.config.getConfigurationSection("extra-items");
         if (extras != null) {
             extras.getKeys(false).forEach(key -> MenuItem.create(extras)
                     .path(key)
@@ -36,7 +36,7 @@ public class ConfirmMenu extends PluginMenu {
                 .player(player)
                 .placeholders(placeholders)
                 .action(event -> {
-                    gui.close(player);
+                    gui.close(event.getWhoClicked());
                     this.rosePlugin.getManager(AuctionManager.class).buyAuction(player, auction.getId());
                 })
                 .place(gui);
@@ -46,7 +46,7 @@ public class ConfirmMenu extends PluginMenu {
                 .path("cancel-item")
                 .player(player)
                 .placeholders(placeholders)
-                .action(event -> gui.close(player))
+                .action(event -> gui.close(event.getWhoClicked()))
                 .place(gui);
 
         // Auction Item?

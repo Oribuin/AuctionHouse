@@ -31,8 +31,8 @@ public class SellerMenu extends PluginMenu {
     }
 
     public void open(Player player) {
-        final PaginatedGui gui = this.createPagedGUI(player);
-        final CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
+        PaginatedGui gui = this.createPagedGUI(player);
+        CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
         if (section != null) {
             section.getKeys(false).forEach(key -> MenuItem.create(section)
                     .path(key)
@@ -51,29 +51,29 @@ public class SellerMenu extends PluginMenu {
                 .place(gui);
 
         // Add gui navigation buttons
-        final MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
+        MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
         MenuItem.create(this.config)
                 .path("sold-auctions")
                 .player(player)
-                .action(event -> menuManager.get(SoldAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(SoldAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("expired-auctions")
                 .player(player)
-                .action(event -> menuManager.get(ExpiredAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(ExpiredAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("main-menu")
                 .player(player)
-                .action(event -> menuManager.get(MainAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(MainAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("my-auctions")
                 .player(player)
-                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         this.setSellers(gui, player);
@@ -89,10 +89,10 @@ public class SellerMenu extends PluginMenu {
     private void setSellers(final PaginatedGui gui, final Player player) {
         gui.clearPageItems();
 
-        final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
+        AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
 
         this.async(() -> {
-            final List<OfflinePlayer> sellers = new ArrayList<>(manager.getActiveSellers());
+            List<OfflinePlayer> sellers = new ArrayList<>(manager.getActiveSellers());
             sellers.sort(Comparator.comparing(OfflinePlayer::getName));
 
             for (OfflinePlayer seller : sellers) {
@@ -112,8 +112,8 @@ public class SellerMenu extends PluginMenu {
                         .build();
 
                 gui.addItem(new GuiItem(itemStack, event -> {
-                    final MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
-                    menuManager.get(ViewMenu.class).open(player, seller);
+                    MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
+                    menuManager.get(ViewMenu.class).open((Player) event.getWhoClicked(), seller);
                 }));
 
             }

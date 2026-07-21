@@ -6,6 +6,7 @@ import dev.rosewood.rosegarden.utils.StringPlaceholders;
 import dev.triumphteam.gui.guis.GuiItem;
 import dev.triumphteam.gui.guis.PaginatedGui;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PolarBear;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import xyz.oribuin.auctionhouse.auction.Auction;
@@ -17,6 +18,7 @@ import xyz.oribuin.auctionhouse.manager.LocaleManager;
 import xyz.oribuin.auctionhouse.manager.MenuManager;
 import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
+import javax.security.auth.x500.X500Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +35,8 @@ public class MainAuctionsMenu extends PluginMenu {
     }
 
     public void open(Player player) {
-        final PaginatedGui gui = this.createPagedGUI(player);
-        final CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
+        PaginatedGui gui = this.createPagedGUI(player);
+        CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
         if (section != null) {
             section.getKeys(false).forEach(key -> MenuItem.create(section)
                     .path(key)
@@ -49,27 +51,27 @@ public class MainAuctionsMenu extends PluginMenu {
         MenuItem.create(this.config)
                 .path("refresh-menu")
                 .player(player)
-                .action(event -> this.setAuctions(gui, player))
+                .action(event -> this.setAuctions(gui, (Player) event.getWhoClicked()))
                 .place(gui);
 
         // Add gui navigation buttons
-        final MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
+        MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
         MenuItem.create(this.config)
                 .path("sold-auctions")
                 .player(player)
-                .action(event -> menuManager.get(SoldAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(SoldAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("expired-auctions")
                 .player(player)
-                .action(event -> menuManager.get(ExpiredAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(ExpiredAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("my-auctions")
                 .player(player)
-                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         this.addSort(gui, player);
@@ -87,17 +89,17 @@ public class MainAuctionsMenu extends PluginMenu {
     private void setAuctions(final PaginatedGui gui, final Player player) {
         gui.clearPageItems();
 
-        final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
-        final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final List<String> auctionLore = new ArrayList<>(
+        AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
+        LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        List<String> auctionLore = new ArrayList<>(
                 player.hasPermission("auctionhouse.admin")
                         ? this.config.getStringList("auction-settings.admin-lore")
                         : this.config.getStringList("auction-settings.lore")
         );
 
         this.async(() -> {
-            final List<Auction> auctions = new ArrayList<>(manager.getActive());
-            final SortType sortType = this.lastSort.getOrDefault(player.getUniqueId(), SortType.TIME_ASCENDING);
+            List<Auction> auctions = new ArrayList<>(manager.getActive());
+            SortType sortType = this.lastSort.getOrDefault(player.getUniqueId(), SortType.TIME_ASCENDING);
 
             auctions.sort(sortType.getComparator());
 
@@ -111,10 +113,10 @@ public class MainAuctionsMenu extends PluginMenu {
                 ItemMeta itemMeta = itemStack.getItemMeta();
                 if (itemMeta == null) return;
 
-                final List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
-                final String timeLeft = AuctionUtils.formatTime(auction.getTimeLeft());
+                List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
+                String timeLeft = AuctionUtils.formatTime(auction.getTimeLeft());
 
-                final StringPlaceholders placeholders = StringPlaceholders.builder()
+                StringPlaceholders placeholders = StringPlaceholders.builder()
                         .add("price", AuctionUtils.formatCurrency(auction.getPrice()))
                         .add("seller", auction.getSellerPlayer().getName())
                         .add("time", timeLeft.equals("0") ? "Expired" : timeLeft)
@@ -126,35 +128,37 @@ public class MainAuctionsMenu extends PluginMenu {
 
                 gui.addItem(new GuiItem(itemStack, event -> {
 
+                    Player user = (Player) event.getWhoClicked();
+
                     // Admin commands
-                    if (event.isShiftClick() && player.hasPermission("auctionhouse.admin")) {
+                    if (event.isShiftClick() && user.hasPermission("auctionhouse.admin")) {
                         if (event.isLeftClick()) {
                             manager.expire(auction);
                         } else if (event.isRightClick()) {
                             manager.delete(auction);
 
                             // Give the player the item back
-                            player.getInventory().addItem(auction.getItem());
+                            user.getInventory().addItem(auction.getItem());
                         }
 
                         // Update the GUI
-                        this.setAuctions(gui, player);
+                        this.setAuctions(gui, user);
                         return;
                     }
 
                     // Stop the player from buying it if they are the seller
-                    if (player.getUniqueId() == auction.getSeller()) {
-                        gui.close(player);
-                        locale.sendMessage(player, "command-buy-own-auction");
+                    if (user.getUniqueId() == auction.getSeller()) {
+                        gui.close(user);
+                        locale.sendMessage(user, "command-buy-own-auction");
                         return;
                     }
 
-                    gui.close(player);
+                    gui.close(user);
 
                     // Buy the auction
                     this.rosePlugin.getManager(MenuManager.class)
                             .get(ConfirmMenu.class)
-                            .open(player, auction);
+                            .open(user, auction);
                 }));
             }
 
@@ -177,7 +181,7 @@ public class MainAuctionsMenu extends PluginMenu {
                 .action(event -> {
                     if (gui.previous()) {
                         this.updateTitle(gui);
-                        this.lastPage.put(player.getUniqueId(), gui.getCurrentPageNum());
+                        this.lastPage.put(event.getWhoClicked().getUniqueId(), gui.getCurrentPageNum());
                     }
                 })
                 .place(gui);
@@ -189,7 +193,7 @@ public class MainAuctionsMenu extends PluginMenu {
                 .action(event -> {
                     if (gui.next()) {
                         this.updateTitle(gui);
-                        this.lastPage.put(player.getUniqueId(), gui.getCurrentPageNum());
+                        this.lastPage.put(event.getWhoClicked().getUniqueId(), gui.getCurrentPageNum());
                     }
                 })
                 .place(gui);
@@ -204,13 +208,14 @@ public class MainAuctionsMenu extends PluginMenu {
      * @param player The player
      */
     private void addSort(PaginatedGui gui, Player player) {
-        final SortType sort = this.lastSort.getOrDefault(player.getUniqueId(), SortType.TIME_ASCENDING);
+        SortType sort = this.lastSort.getOrDefault(player.getUniqueId(), SortType.TIME_ASCENDING);
 
         MenuItem.create(this.config)
                 .path("sort-item")
                 .placeholders(StringPlaceholders.of("sort", sort.getDisplayName()))
                 .player(player)
                 .action(event -> {
+                    Player user = (Player) event.getWhoClicked();
                     SortType newSort = sort;
 
                     switch (sort) {
@@ -220,9 +225,9 @@ public class MainAuctionsMenu extends PluginMenu {
                         case PRICE_DESCENDING -> newSort = SortType.TIME_ASCENDING;
                     }
 
-                    this.lastSort.put(player.getUniqueId(), newSort);
-                    this.addSort(gui, player);
-                    this.setAuctions(gui, player);
+                    this.lastSort.put(user.getUniqueId(), newSort);
+                    this.addSort(gui, user);
+                    this.setAuctions(gui, user);
                 })
                 .place(gui);
 

@@ -2,6 +2,7 @@ package xyz.oribuin.auctionhouse.util;
 
 import org.bukkit.Color;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
@@ -44,7 +45,7 @@ public class ItemBuilder {
      * @return Item.Builder.
      */
     public ItemBuilder name(@Nullable String text) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null || text == null)
             return this;
 
@@ -61,7 +62,7 @@ public class ItemBuilder {
      * @return Item.Builder.
      */
     public ItemBuilder lore(@Nullable List<String> lore) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null || lore == null)
             return this;
 
@@ -99,7 +100,7 @@ public class ItemBuilder {
      * @return Item.Builder
      */
     public ItemBuilder enchant(Enchantment ench, int level) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null) return this;
 
         meta.addEnchant(ench, level, true);
@@ -116,7 +117,7 @@ public class ItemBuilder {
      */
 
     public ItemBuilder enchant(Map<Enchantment, Integer> enchantments) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null) return this;
 
         for (Map.Entry<Enchantment, Integer> entry : enchantments.entrySet()) {
@@ -145,7 +146,7 @@ public class ItemBuilder {
      * @return Item.Builder
      */
     public ItemBuilder flags(ItemFlag[] flags) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null) return this;
 
         meta.removeItemFlags(ItemFlag.values());
@@ -163,7 +164,7 @@ public class ItemBuilder {
      * @return Item.Builder
      */
     public ItemBuilder unbreakable(boolean unbreakable) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null) return this;
 
         meta.setUnbreakable(unbreakable);
@@ -179,13 +180,19 @@ public class ItemBuilder {
     public ItemBuilder glow(boolean b) {
         if (!b) return this;
 
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null) return this;
 
-        meta.addEnchant(Enchantment.PROTECTION_ENVIRONMENTAL, 1, true);
-        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-        this.item.setItemMeta(meta);
+        NamespacedKey namespacedKey = NamespacedKey.minecraft("protection_environmental");
+        Enchantment enchantment = Enchantment.getByKey(namespacedKey);
+        if (enchantment != null) {
+            meta.addEnchant(enchantment, 1, true);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        } else {
+            meta.setEnchantmentGlintOverride(true);
+        }
 
+        this.item.setItemMeta(meta);
         return this;
     }
 
@@ -199,7 +206,7 @@ public class ItemBuilder {
         if (item.getType() != Material.PLAYER_HEAD || texture == null)
             return this;
 
-        final SkullMeta skullMeta = (SkullMeta) item.getItemMeta();
+        SkullMeta skullMeta = (SkullMeta) item.getItemMeta();
         if (skullMeta == null)
             return this;
 
@@ -218,7 +225,7 @@ public class ItemBuilder {
         if (item.getType() != Material.PLAYER_HEAD)
             return this;
 
-        final SkullMeta skullMeta = (SkullMeta) item.getItemMeta();
+        SkullMeta skullMeta = (SkullMeta) item.getItemMeta();
         if (skullMeta == null || owner == null || skullMeta.getOwningPlayer() != null || skullMeta.getPlayerProfile() != null)
             return this;
 
@@ -228,7 +235,7 @@ public class ItemBuilder {
     }
 
     public ItemBuilder model(int model) {
-        final ItemMeta meta = this.item.getItemMeta();
+        ItemMeta meta = this.item.getItemMeta();
         if (meta == null || model == -1)
             return this;
 

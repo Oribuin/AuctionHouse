@@ -4,7 +4,7 @@ import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.manager.Manager;
 import dev.rosewood.rosegarden.utils.StringPlaceholders;
 import xyz.oribuin.auctionhouse.auction.Auction;
-import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
+import xyz.oribuin.auctionhouse.config.Setting;
 import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
 import java.io.BufferedWriter;
@@ -25,8 +25,7 @@ public class LogManager extends Manager {
 
     @Override
     public void reload() {
-        if (!Settings.AUCTION_LOGGING.getBoolean())
-            return;
+        if (!Setting.AUCTION_LOGGING.get()) return;
 
         this.logFile = new File(this.rosePlugin.getDataFolder(), "auction-logs.log");
         if (!this.logFile.exists()) {
@@ -44,12 +43,12 @@ public class LogManager extends Manager {
      * @param auction    The auction to log
      */
     public void addLogMessage(LogMessage logMessage, Auction auction) {
-        if (!Settings.AUCTION_LOGGING.getBoolean())
-            return;
+        if (!Setting.AUCTION_LOGGING.get()) return;
+
 
         try {
-            final FileWriter fileWriter = new FileWriter(this.logFile, true);
-            final BufferedWriter writer = new BufferedWriter(fileWriter);
+            FileWriter fileWriter = new FileWriter(this.logFile, true);
+            BufferedWriter writer = new BufferedWriter(fileWriter);
 
             String date = this.dateFormat.format(new Date());
             writer.write("[" + date + "] " + this.getPlaceholders(auction).apply(logMessage.getMessage()));

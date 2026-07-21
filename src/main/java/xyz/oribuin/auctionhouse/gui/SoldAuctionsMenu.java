@@ -34,8 +34,8 @@ public class SoldAuctionsMenu extends PluginMenu {
     }
 
     public void open(Player player) {
-        final PaginatedGui gui = this.createPagedGUI(player);
-        final CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
+        PaginatedGui gui = this.createPagedGUI(player);
+        CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
         if (section != null) {
             section.getKeys(false).forEach(key -> MenuItem.create(section)
                     .path(key)
@@ -50,27 +50,27 @@ public class SoldAuctionsMenu extends PluginMenu {
         MenuItem.create(this.config)
                 .path("refresh-menu")
                 .player(player)
-                .action(event -> this.setAuctions(gui, player))
+                .action(event -> this.setAuctions(gui, (Player) event.getWhoClicked()))
                 .place(gui);
 
         // Add gui navigation buttons
-        final MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
+        MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
         MenuItem.create(this.config)
                 .path("my-auctions")
                 .player(player)
-                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(PersonalAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("expired-auctions")
                 .player(player)
-                .action(event -> menuManager.get(ExpiredAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(ExpiredAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         MenuItem.create(this.config)
                 .path("main-menu")
                 .player(player)
-                .action(event -> menuManager.get(MainAuctionsMenu.class).open(player))
+                .action(event -> menuManager.get(MainAuctionsMenu.class).open((Player) event.getWhoClicked()))
                 .place(gui);
 
         this.setAuctions(gui, player);
@@ -87,12 +87,12 @@ public class SoldAuctionsMenu extends PluginMenu {
     private void setAuctions(final PaginatedGui gui, final Player player) {
         gui.clearPageItems();
 
-        final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
-        final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-settings.lore"));
+        AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
+        LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-settings.lore"));
 
         this.async(() -> {
-            final List<Auction> auctions = new ArrayList<>(manager.getSold(player.getUniqueId()));
+            List<Auction> auctions = new ArrayList<>(manager.getSold(player.getUniqueId()));
             auctions.sort(Comparator.comparingLong(Auction::getSoldTime).reversed());
 
             for (Auction auction : auctions) {
@@ -103,8 +103,8 @@ public class SoldAuctionsMenu extends PluginMenu {
                 ItemMeta itemMeta = itemStack.getItemMeta();
                 if (itemMeta == null) return;
 
-                final List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
-                final StringPlaceholders placeholders = StringPlaceholders.builder()
+                List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
+                StringPlaceholders placeholders = StringPlaceholders.builder()
                         .add("price", AuctionUtils.formatCurrency(auction.getSoldPrice()))
                         .add("originalPrice", AuctionUtils.formatCurrency(auction.getPrice()))
                         .add("buyer", buyer.getName())
@@ -114,7 +114,7 @@ public class SoldAuctionsMenu extends PluginMenu {
                 itemMeta.setLore(itemLore);
                 itemStack.setItemMeta(itemMeta);
 
-                gui.addItem(new GuiItem(itemStack, event -> manager.delete(auction, x -> this.setAuctions(gui, player))));
+                gui.addItem(new GuiItem(itemStack, event -> manager.delete(auction, x -> this.setAuctions(gui, (Player) event.getWhoClicked()))));
             }
 
             gui.update();

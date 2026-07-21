@@ -31,8 +31,8 @@ public class ExpiredAuctionsMenu extends PluginMenu {
     }
 
     public void open(Player player) {
-        final PaginatedGui gui = this.createPagedGUI(player);
-        final CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
+        PaginatedGui gui = this.createPagedGUI(player);
+        CommentedConfigurationSection section = this.config.getConfigurationSection("extra-items");
         if (section != null) {
             section.getKeys(false).forEach(key -> MenuItem.create(section)
                     .path(key)
@@ -51,7 +51,7 @@ public class ExpiredAuctionsMenu extends PluginMenu {
                 .place(gui);
 
         // Add gui navigation buttons
-        final MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
+        MenuManager menuManager = this.rosePlugin.getManager(MenuManager.class);
         MenuItem.create(this.config)
                 .path("sold-auctions")
                 .player(player)
@@ -79,9 +79,9 @@ public class ExpiredAuctionsMenu extends PluginMenu {
     private void setAuctions(final PaginatedGui gui, final Player player) {
         gui.clearPageItems();
 
-        final AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
-        final LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
-        final List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-settings.lore"));
+        AuctionManager manager = this.rosePlugin.getManager(AuctionManager.class);
+        LocaleManager locale = this.rosePlugin.getManager(LocaleManager.class);
+        List<String> auctionLore = new ArrayList<>(this.config.getStringList("auction-settings.lore"));
 
         this.async(() -> {
             for (Auction auction : manager.getExpired(player.getUniqueId())) {
@@ -89,8 +89,8 @@ public class ExpiredAuctionsMenu extends PluginMenu {
                 ItemMeta itemMeta = itemStack.getItemMeta();
                 if (itemMeta == null) return;
 
-                final List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
-                final StringPlaceholders placeholders = StringPlaceholders.of(
+                List<String> itemLore = new ArrayList<>(itemMeta.getLore() != null ? itemMeta.getLore() : List.of());
+                StringPlaceholders placeholders = StringPlaceholders.of(
                         "price", AuctionUtils.formatCurrency(auction.getPrice()),
                         "expired", AuctionUtils.getDate(auction.getExpiredTime())
                 );
@@ -106,7 +106,7 @@ public class ExpiredAuctionsMenu extends PluginMenu {
                     // Delete the auction
                     manager.delete(auction, x -> {
                         event.getWhoClicked().getInventory().addItem(auction.getItem());
-                        this.setAuctions(gui, player);
+                        this.setAuctions(gui, (Player) event.getWhoClicked());
                     });
                 }));
             }

@@ -3,10 +3,12 @@ package xyz.oribuin.auctionhouse.manager;
 import dev.rosewood.rosegarden.RosePlugin;
 import dev.rosewood.rosegarden.database.DataMigration;
 import dev.rosewood.rosegarden.manager.AbstractDataManager;
+import dev.rosewood.rosegarden.utils.NMSUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
+import org.jetbrains.annotations.NotNull;
 import xyz.oribuin.auctionhouse.auction.Auction;
 import xyz.oribuin.auctionhouse.auction.OfflineProfits;
 import xyz.oribuin.auctionhouse.database.migration._1_CreateInitialTables;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class DataManager extends AbstractDataManager {
 
@@ -54,13 +57,13 @@ public class DataManager extends AbstractDataManager {
                     if (resultSet.getBoolean("expired") || resultSet.getBoolean("sold"))
                         continue;
 
-                    final int id = resultSet.getInt("id");
-                    final UUID seller = UUID.fromString(resultSet.getString("seller"));
-                    final ItemStack item = this.deserialize(resultSet.getBytes("item"));
-                    final double price = resultSet.getDouble("price");
+                    int id = resultSet.getInt("id");
+                    UUID seller = UUID.fromString(resultSet.getString("seller"));
+                    ItemStack item = this.deserialize(resultSet.getBytes("item"));
+                    double price = resultSet.getDouble("price");
 
                     // Create the auction
-                    final Auction auction = new Auction(id, seller, item, price);
+                    Auction auction = new Auction(id, seller, item, price);
                     this.auctionCache.put(id, auction);
                 }
             }
@@ -71,9 +74,9 @@ public class DataManager extends AbstractDataManager {
             try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + this.getTablePrefix() + "offline_profits")) {
                 ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
-                    final UUID uuid = UUID.fromString(resultSet.getString("uuid"));
-                    final double profits = resultSet.getDouble("profits");
-                    final int totalSold = resultSet.getInt("totalSold");
+                    UUID uuid = UUID.fromString(resultSet.getString("uuid"));
+                    double profits = resultSet.getDouble("profits");
+                    int totalSold = resultSet.getInt("totalSold");
                     this.offlineProfitsCache.put(uuid, new OfflineProfits(profits, totalSold));
                 }
             }
@@ -96,13 +99,13 @@ public class DataManager extends AbstractDataManager {
 
                 ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
-                    final int id = resultSet.getInt("id");
-                    final UUID seller = UUID.fromString(resultSet.getString("seller"));
-                    final ItemStack item = this.deserialize(resultSet.getBytes("item"));
-                    final double price = resultSet.getDouble("price");
+                    int id = resultSet.getInt("id");
+                    UUID seller = UUID.fromString(resultSet.getString("seller"));
+                    ItemStack item = this.deserialize(resultSet.getBytes("item"));
+                    double price = resultSet.getDouble("price");
 
                     // Create the auction
-                    final Auction auction = new Auction(id, seller, item, price);
+                    Auction auction = new Auction(id, seller, item, price);
                     if (resultSet.getString("buyer") != null) {
                         auction.setBuyer(UUID.fromString(resultSet.getString("buyer")));
                     }
@@ -126,11 +129,11 @@ public class DataManager extends AbstractDataManager {
      * @param price The price of the item
      */
     public void createAuction(UUID uuid, ItemStack item, double price, Consumer<Auction> callback) {
-        final Auction auction = new Auction(-1, uuid, item, price);
+        Auction auction = new Auction(-1, uuid, item, price);
         auction.setCreatedTime(System.currentTimeMillis());
 
         this.async(() -> this.databaseConnector.connect(connection -> {
-            final String query = "INSERT INTO " + this.getTablePrefix() + "auctions (seller, item, price) VALUES (?, ?, ?)";
+            String query = "INSERT INTO " + this.getTablePrefix() + "auctions (seller, item, price) VALUES (?, ?, ?)";
             try (PreparedStatement statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
                 statement.setString(1, uuid.toString());
                 statement.setBytes(2, this.serialize(item));
@@ -161,7 +164,7 @@ public class DataManager extends AbstractDataManager {
         this.async(() -> this.databaseConnector.connect(connection -> {
 
             // Save auction in database where id matches the auction id
-            final String query = "REPLACE INTO " + this.getTablePrefix() + "auctions (id, seller, item, price, createdTime, expiredTime, soldTime, sold, expired) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String query = "REPLACE INTO " + this.getTablePrefix() + "auctions (id, seller, item, price, createdTime, expiredTime, soldTime, sold, expired) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setInt(1, auction.getId());
                 statement.setString(2, auction.getSeller().toString());
@@ -187,7 +190,7 @@ public class DataManager extends AbstractDataManager {
             return;
 
         this.async(() -> this.databaseConnector.connect(connection -> {
-            final String query = "DELETE FROM " + this.getTablePrefix() + "auctions WHERE id = ?";
+            String query = "DELETE FROM " + this.getTablePrefix() + "auctions WHERE id = ?";
             try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setInt(1, auction.getId());
                 int result = statement.executeUpdate();
@@ -209,7 +212,7 @@ public class DataManager extends AbstractDataManager {
         this.offlineProfitsCache.put(uuid, profits);
 
         this.async(() -> this.databaseConnector.connect(connection -> {
-            final String query = "REPLACE INTO " + this.getTablePrefix() + "offline_profits (uuid, profits, totalSold) VALUES (?, ?, ?)";
+            String query = "REPLACE INTO " + this.getTablePrefix() + "offline_profits (uuid, profits, totalSold) VALUES (?, ?, ?)";
 
             try (PreparedStatement statement = connection.prepareStatement(query)) {
                 statement.setString(1, uuid.toString());
@@ -227,6 +230,8 @@ public class DataManager extends AbstractDataManager {
      * @return The serialized item stack
      */
     private byte[] serialize(ItemStack itemStack) {
+        if (NMSUtil.isPaper()) return itemStack.serializeAsBytes(); // Paper has a built-in method for this
+
         byte[] data = new byte[0];
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream();
              BukkitObjectOutputStream oos = new BukkitObjectOutputStream(stream)) {
@@ -240,6 +245,8 @@ public class DataManager extends AbstractDataManager {
 
     // Deserialize an ItemStack from a byte array using Bukkit serialization
     private ItemStack deserialize(byte[] data) {
+        if (NMSUtil.isPaper()) return ItemStack.deserializeBytes(data); // Paper has a built-in method for this
+
         ItemStack itemStack = null;
         try (ByteArrayInputStream stream = new ByteArrayInputStream(data);
              BukkitObjectInputStream ois = new BukkitObjectInputStream(stream)) {
@@ -260,8 +267,11 @@ public class DataManager extends AbstractDataManager {
     }
 
     @Override
-    public List<Class<? extends DataMigration>> getDataMigrations() {
-        return List.of(_1_CreateInitialTables.class, _2_CreateOfflineProfitsTable.class);
+    public @NotNull List<Supplier<? extends DataMigration>> getDataMigrations() {
+        return List.of(
+                _1_CreateInitialTables::new,
+                _2_CreateOfflineProfitsTable::new
+        );
     }
 
     public void async(Runnable runnable) {

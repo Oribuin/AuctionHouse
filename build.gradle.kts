@@ -1,9 +1,9 @@
 import java.net.URI
 
 plugins {
-    id("java-library")
-    id("com.github.johnrengelman.shadow") version "7.1.0"
-    id("maven-publish")
+    `java-library`
+    `maven-publish`
+    id("com.gradleup.shadow") version "8.3.5"
 }
 
 
@@ -11,8 +11,12 @@ group = "xyz.oribuin"
 version = "1.1.0"
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+
+    disableAutoTargetJvm()
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
@@ -36,17 +40,17 @@ repositories {
 }
 
 dependencies {
-    api("dev.rosewood:rosegarden:1.2.5")
-    api("org.jetbrains:annotations:24.0.0")
-    api("dev.triumphteam:triumph-gui:3.1.7") {
+    api("dev.rosewood:rosegarden:1.5.3")
+    api("dev.triumphteam:triumph-gui:3.1.11") {
         exclude(group = "com.google.code.gson", module = "gson")
         exclude(group = "net.kyori", module = "*")
     }
 
-    compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
-    compileOnly("org.spigotmc:spigot-api:1.20.2-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.3-R0.1-SNAPSHOT")
+    compileOnly("me.clip:placeholderapi:2.11.6")
 
     // Plugin Dependencies
+    compileOnly("org.jetbrains:annotations:24.0.0")
     compileOnly("com.mojang:authlib:1.5.21")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     compileOnly("com.arcaniax:HeadDatabase-API:1.3.1")
@@ -86,12 +90,11 @@ tasks {
     shadowJar {
         this.archiveClassifier.set("")
 
-        this.relocate("org.jetbrains.annotations", "xyz.oribuin.auctionhouse.libs.annotations")
-        this.relocate("org.intellij.lang", "xyz.oribuin.auctionhouse.libs.intellij")
-        this.relocate("dev.rosewood.rosegarden", "xyz.oribuin.auctionhouse.libs.rosegarden")
+        this.relocate("org.intellij.lang", "${project.group}.auctionhouse.libs.intellij")
+        this.relocate("dev.rosewood.rosegarden", "${project.group}.auctionhouse.libs.rosegarden")
 
-        this.exclude("dev/rosewood/rosegarden/lib/hikaricp/**/*.class")
-        this.exclude("dev/rosewood/rosegarden/lib/slf4j/**/*.class")
+        this.relocate("com.zaxxer", "${project.group}.auctionhouse.libs.hikari")
+        this.relocate("org.slf4j", "${project.group}.auctionhouse.libs.slf4j")
     }
 
     build {

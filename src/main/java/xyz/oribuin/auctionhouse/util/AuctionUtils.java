@@ -19,7 +19,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import xyz.oribuin.auctionhouse.AuctionHouse;
-import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
+import xyz.oribuin.auctionhouse.config.Setting;
 import xyz.oribuin.auctionhouse.manager.LocaleManager;
 
 import java.text.DecimalFormat;
@@ -71,7 +71,7 @@ public final class AuctionUtils {
 
     public static String formatCurrency(double amount) {
         return DecimalFormat.getCurrencyInstance(
-                Locale.forLanguageTag(Settings.MONEY_LOCALE.getString())
+                Locale.forLanguageTag(Setting.MONEY_LOCALE.get())
         ).format(amount);
     }
 
@@ -96,7 +96,7 @@ public final class AuctionUtils {
         long minutes = (int) Math.floor(totalSeconds / 60.0);
         long seconds = (totalSeconds % 60);
 
-        final StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
 
         if (days > 0)
             builder.append(days).append("d, ");
@@ -115,7 +115,7 @@ public final class AuctionUtils {
      * @return The date
      */
     public static String getDate(long time) {
-        return new SimpleDateFormat(Settings.DATE_FORMAT. getString()).format(time);
+        return new SimpleDateFormat(Setting.DATE_FORMAT.get()).format(time);
     }
 
 
@@ -135,16 +135,16 @@ public final class AuctionUtils {
             @NotNull String key,
             @NotNull StringPlaceholders placeholders
     ) {
-        final LocaleManager locale = AuctionHouse.get().getManager(LocaleManager.class);
-        final Material material = Material.getMaterial(section.getString(key + ".material", ""));
+        LocaleManager locale = AuctionHouse.get().getManager(LocaleManager.class);
+        Material material = Material.getMaterial(section.getString(key + ".material", ""));
         if (material == null) return null;
 
         // Load enchantments
-        final Map<Enchantment, Integer> enchantments = new HashMap<>();
-        final ConfigurationSection enchantmentSection = section.getConfigurationSection(key + ".enchantments");
+        Map<Enchantment, Integer> enchantments = new HashMap<>();
+        ConfigurationSection enchantmentSection = section.getConfigurationSection(key + ".enchantments");
         if (enchantmentSection != null) {
             for (String enchantmentKey : enchantmentSection.getKeys(false)) {
-                final Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(enchantmentKey.toLowerCase()));
+                Enchantment enchantment = Enchantment.getByKey(NamespacedKey.minecraft(enchantmentKey.toLowerCase()));
                 if (enchantment == null) continue;
 
                 enchantments.put(enchantment, enchantmentSection.getInt(enchantmentKey, 1));
@@ -152,12 +152,12 @@ public final class AuctionUtils {
         }
 
         // Load potion item flags
-        final ItemFlag[] flags = section.getStringList(key + ".flags").stream()
+        ItemFlag[] flags = section.getStringList(key + ".flags").stream()
                 .map(ItemFlag::valueOf)
                 .toArray(ItemFlag[]::new);
 
         // Load offline player texture
-        final String owner = section.getString(key + ".owner");
+        String owner = section.getString(key + ".owner");
         OfflinePlayer offlinePlayer = null;
         if (owner != null) {
             if (owner.equalsIgnoreCase("self") && sender instanceof Player player) {
@@ -230,8 +230,8 @@ public final class AuctionUtils {
 
     @SuppressWarnings("deprecation")
     public static String getItemName(ItemStack item) {
-        final Material type = item.getType();
-        final ItemMeta meta = item.getItemMeta();
+        Material type = item.getType();
+        ItemMeta meta = item.getItemMeta();
         if (meta == null) {
             return type.name().toLowerCase().replace("_", " ");
         }
@@ -273,7 +273,7 @@ public final class AuctionUtils {
             return List.of(start);
         }
 
-        final List<Integer> list = new ArrayList<>();
+        List<Integer> list = new ArrayList<>();
         for (int i = start; i <= end; i++) {
             list.add(i);
         }

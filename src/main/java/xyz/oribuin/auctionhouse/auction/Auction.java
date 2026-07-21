@@ -3,7 +3,7 @@ package xyz.oribuin.auctionhouse.auction;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
-import xyz.oribuin.auctionhouse.manager.ConfigurationManager.Settings;
+import xyz.oribuin.auctionhouse.config.Setting;
 import xyz.oribuin.auctionhouse.util.AuctionUtils;
 
 import java.time.Duration;
@@ -51,7 +51,7 @@ public class Auction {
     public boolean isExpired() {
         if (this.expired) return true;
 
-        return this.createdTime + AuctionUtils.parseTime(Settings.LIST_TIME.getString()) <= System.currentTimeMillis();
+        return this.createdTime + AuctionUtils.parseTime(Setting.LIST_TIME.get()) <= System.currentTimeMillis();
     }
 
     /**
@@ -60,9 +60,9 @@ public class Auction {
      * @return the time until the auction expires
      */
     public long getTimeLeft() {
-        final long left = Duration.between(
+        long left = Duration.between(
                 Instant.now(),
-                Instant.ofEpochMilli(this.createdTime + AuctionUtils.parseTime(Settings.LIST_TIME.getString()))
+                Instant.ofEpochMilli(this.createdTime + AuctionUtils.parseTime(Setting.LIST_TIME.get()))
         ).toMillis();
 
         return Math.max(left, 0);
